@@ -1,62 +1,117 @@
 'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
+import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot, query, where, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const initialProducts = {
-  perros: [
- 
-  ],
-  gatos: [
-    
-  ],
-  mascotasPequeñas: [
-    
-  ]
+  perros: [],
+  gatos: [],
+  mascotasPequeñas: []
 };
 
 const ProductContext = createContext();
 
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState(initialProducts);
+  const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false); // Nuevo estado
 
+
+  // Cargar productos desde Firestore
   useEffect(() => {
-    // Cargar productos guardados al iniciar
-    const savedProducts = localStorage.getItem('products');
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    } else {
-      // Usar los productos iniciales si no hay guardados
-      setProducts(initialProducts);
-      localStorage.setItem('products', JSON.stringify(initialProducts));
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const q = query(collection(db, 'products'));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        // Solo actualizar si no estamos en medio de una actualización
+        if (!isUpdating) {
+          const loadedProducts = { ...initialProducts };
+          
+          querySnapshot.forEach((doc) => {
+            const productData = doc.data();
+            const category = productData.category;
+            
+            if (!loadedProducts[category]) {
+              loadedProducts[category] = [];
+            }
+            
+            // Verificar si el producto ya existe en el estado
+            const existingProductIndex = loadedProducts[category].findIndex(p => p.id === doc.id);
+            
+            if (existingProductIndex === -1) {
+              // Si no existe, agregarlo
+              loadedProducts[category].push({
+                id: doc.id,
+                ...productData
+              });
+            } else {
+              // Si existe, actualizarlo
+              loadedProducts[category][existingProductIndex] = {
+                id: doc.id,
+                ...productData
+              };
+            }
+          });
+          
+          setProducts(loadedProducts);
+        }
+        setLoading(false);
+      });
+      
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error cargando productos:', error);
+      setLoading(false);
     }
-  }, []);
-
-  const addProduct = (category, product) => {
-    const newProducts = {
-      ...products,
-      [category]: [...(products[category] || []), { ...product, id: Date.now() }]
-    };
-    setProducts(newProducts);
-    localStorage.setItem('products', JSON.stringify(newProducts));
   };
+  
+  loadProducts();
+}, [isUpdating]);
 
-  const updateProduct = (category, productId, updatedProduct) => {
-    const newProducts = {
-      ...products,
-      [category]: (products[category] || []).map(p => 
-        p.id === productId ? { ...p, ...updatedProduct } : p
-      )
-    };
-    setProducts(newProducts);
-    localStorage.setItem('products', JSON.stringify(newProducts));
-  };
+  const addProduct = async (category, product) => {
+  try {
+    setIsUpdating(true); // Indicar que estamos actualizando
+    const newProductRef = doc(collection(db, 'products'));
+    await setDoc(newProductRef, {
+      ...product,
+      category,
+      createdAt: new Date().toISOString()
+    });
+    // No actualizamos el estado local aquí, lo manejará onSnapshot
+  } catch (error) {
+    console.error('Error agregando producto:', error);
+    throw error;
+  } finally {
+    setIsUpdating(false); // Indicar que terminamos de actualizar
+  }
+};
 
-  const deleteProduct = (category, productId) => {
-    const newProducts = {
-      ...products,
-      [category]: (products[category] || []).filter(p => p.id !== productId)
-    };
-    setProducts(newProducts);
-    localStorage.setItem('products', JSON.stringify(newProducts));
+  const updateProduct = async (category, productId, updatedProduct) => {
+  try {
+    setIsUpdating(true); // Indicar que estamos actualizando
+    const productRef = doc(db, 'products', productId);
+    await updateDoc(productRef, {
+      ...updatedProduct,
+      updatedAt: new Date().toISOString()
+    });
+    // No actualizamos el estado local aquí, lo manejará onSnapshot
+  } catch (error) {
+    console.error('Error actualizando producto:', error);
+    throw error;
+  } finally {
+    setIsUpdating(false); // Indicar que terminamos de actualizar
+  }
+};
+
+  const deleteProduct = async (category, productId) => {
+    try {
+      await deleteDoc(doc(db, 'products', productId));
+      // No es necesario actualizar el estado local ya que onSnapshot lo manejará
+    } catch (error) {
+      console.error('Error eliminando producto:', error);
+      throw error;
+    }
   };
 
   return (
@@ -64,7 +119,8 @@ export function ProductProvider({ children }) {
       products, 
       addProduct, 
       updateProduct, 
-      deleteProduct 
+      deleteProduct,
+      loading
     }}>
       {children}
     </ProductContext.Provider>

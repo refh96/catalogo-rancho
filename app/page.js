@@ -9,7 +9,7 @@ import CartModal from '../src/components/CartModal';
 
 export default function Home() {
   const { user, login, logout } = useAuth();
-  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
   const [activeCategory, setActiveCategory] = useState('perros');
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -126,7 +126,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
@@ -261,7 +262,13 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            <div className="col-span-full py-12 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
+              <p className="mt-2 text-gray-600">Cargando productos...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.length === 0 ? (
               <div className="col-span-full py-12 text-center">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -344,9 +351,10 @@ export default function Home() {
               ))
             )}
           </div>
+          )}
         </div>
 
-        {user && (
+      {user && (
           <div className="fixed bottom-8 right-8">
             <button 
               onClick={() => {
@@ -553,7 +561,8 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-500">
             &copy; {new Date().getFullYear()} Rancho Mascotas Hualpén. Todos los derechos reservados.
