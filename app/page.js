@@ -27,6 +27,7 @@ export default function Home() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { addToCart } = useCart();
+  const [alert, setAlert] = useState(null);
   
   // Estados para búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,6 +85,18 @@ export default function Home() {
     logout();
   };
 
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    showAlert(`"${product.name}" agregado al carrito`, 'success');
+  };
+
+  const showAlert = (message, type = 'success') => {
+    setAlert({ message, type });
+    setTimeout(() => {
+      setAlert(null);
+    }, 3000);
+  };
+
   const handleAddProduct = (e) => {
     e.preventDefault();
     const newProduct = {
@@ -94,8 +107,10 @@ export default function Home() {
     
     if (editingProduct) {
       updateProduct(editingProduct.category, editingProduct.id, newProduct);
+      showAlert(`"${newProduct.name}" actualizado exitosamente`, 'success');
     } else {
       addProduct(formData.category, newProduct);
+      showAlert(`"${newProduct.name}" agregado exitosamente`, 'success');
     }
     
     setFormData({
@@ -127,6 +142,21 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Sistema de Alertas */}
+      {alert && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 ${
+          alert.type === 'success' 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+        }`}>
+          <div className="flex items-center">
+            <span className="text-sm font-medium">
+              {alert.type === 'success' ? '✓' : '✗'} {alert.message}
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
@@ -324,7 +354,7 @@ export default function Home() {
                     <p className="text-indigo-600 font-bold text-sm sm:text-base">${product.price.toLocaleString('es-CL')}</p>
                     <div className="mt-3 sm:mt-4 flex justify-between items-center">
                       <button 
-                        onClick={() => addToCart({ ...product, category: activeCategory })}
+                        onClick={() => handleAddToCart({ ...product, category: activeCategory })}
                         className="px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-xs sm:text-sm transition-colors duration-200"
                       >
                         Agregar al carrito
