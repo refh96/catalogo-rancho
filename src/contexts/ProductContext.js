@@ -6,7 +6,9 @@ import { db } from '@/lib/firebase';
 const initialProducts = {
   perros: [],
   gatos: [],
-  mascotasPequeñas: []
+  mascotasPequeñas: [],
+  accesorios: [],
+  medicamentos: []
 };
 
 const ProductContext = createContext();
