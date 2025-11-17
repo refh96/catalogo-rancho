@@ -32,6 +32,7 @@ export default function Home() {
   // Estados para búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
+  const [lifeStage, setLifeStage] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [isListening, setIsListening] = useState(false);
   const [browserSupportsSpeechRecognition, setBrowserSupportsSpeechRecognition] = useState(false);
@@ -85,6 +86,8 @@ export default function Home() {
   
   // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
+    console.log('Actualizando productos. Etapa de vida actual:', lifeStage);
+    console.log('Productos a filtrar:', products[activeCategory]);
     let result = products[activeCategory] || [];
     
     // Filtrar por término de búsqueda
@@ -104,6 +107,32 @@ export default function Home() {
       result = result.filter(product => product.price > 20000);
     }
 
+    // Filtrar por etapa de vida
+    if (lifeStage !== 'all') {
+      console.log('Filtrando por etapa de vida:', lifeStage);
+      result = result.filter(product => {
+        // Normalizar el nombre para hacer la búsqueda sin importar mayúsculas ni acentos
+        const name = product.name.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Eliminar acentos
+        
+        // Palabras clave para cada etapa de vida
+        const keywords = {
+          cachorro: ['cachorro', 'puppy', 'cachorrito', 'cachorra', 'cachorros'],
+          adulto: ['adulto', 'adult', 'adulta', 'adultos', 'adultas'],
+          senior: ['senior', 'sénior', 'anciano', 'mayor', 'veterano', 'golden']
+        };
+        
+        // Verificar si alguna palabra clave coincide
+        const matches = keywords[lifeStage].some(keyword => 
+          name.includes(keyword)
+        );
+        
+        console.log(`Producto: ${name} - ¿Coincide con ${lifeStage}?`, matches);
+        return matches;
+      });
+      console.log('Productos después de filtrar:', result);
+    }
+
     // Ordenar
     if (sortBy === 'price-asc') {
       result = [...result].sort((a, b) => a.price - b.price);
@@ -115,7 +144,7 @@ export default function Home() {
     }
 
     return result;
-  }, [products, activeCategory, searchTerm, priceFilter, sortBy]);
+  }, [products, activeCategory, searchTerm, priceFilter, sortBy, lifeStage]); // Añadido lifeStage a las dependencias
 
 
   const handleLogin = async (e) => {
@@ -277,7 +306,7 @@ export default function Home() {
           {/* Filtros de categoría */}
           <div className="flex flex-wrap gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-4 overflow-x-auto pb-2">
             {Object.keys(products).filter(category => 
-              ['perros', 'gatos', 'mascotasPequeñas', 'accesorios', 'medicamentos'].includes(category)
+              ['perros', 'gatos', 'mascotasPequeñas', 'accesorios', 'farmacia'].includes(category)
             ).map((category) => (
               <button
                 key={category}
@@ -292,7 +321,7 @@ export default function Home() {
                 {category === 'gatos' && '🐱 Gatos'}
                 {category === 'mascotasPequeñas' && '🐹 Mascotas Pequeñas'}
                 {category === 'accesorios' && '🎾 Accesorios y Juguetes'}
-                {category === 'medicamentos' && '💊 Medicamentos'}
+                {category === 'farmacia' && '💊 Farmacia'}
               </button>
             ))}
           </div>
@@ -357,6 +386,21 @@ export default function Home() {
                 <option value="over20k">Más de $20.000</option>
               </select>
               
+              {/* Filtro por etapa de vida */}
+              <select
+                value={lifeStage}
+                onChange={(e) => {
+                  console.log('Cambiando etapa de vida a:', e.target.value);
+                  setLifeStage(e.target.value);
+                }}
+                className="block w-full pl-3 pr-8 sm:pr-10 py-2 text-xs sm:text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
+              >
+                <option value="all">Todas las etapas</option>
+                <option value="cachorro">Cachorro</option>
+                <option value="adulto">Adulto</option>
+                <option value="senior">Senior</option>
+              </select>
+
               {/* Ordenar por */}
               <select
                 value={sortBy}
@@ -395,6 +439,7 @@ export default function Home() {
                     onClick={() => {
                       setSearchTerm('');
                       setPriceFilter('all');
+                      setLifeStage('all');
                     }}
                     className="mt-4 inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
@@ -627,7 +672,7 @@ export default function Home() {
                     <option value="gatos">Gatos</option>
                     <option value="mascotasPequeñas">Mascotas Pequeñas</option>
                     <option value="accesorios">Accesorios y Juguetes</option>
-                    <option value="medicamentos">Medicamentos</option>
+                    <option value="farmacia">Farmacia</option>
                   </select>
                 </div>
                 

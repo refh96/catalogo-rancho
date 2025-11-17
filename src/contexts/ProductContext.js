@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
-import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot, query, where, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const initialProducts = {
@@ -8,7 +8,7 @@ const initialProducts = {
   gatos: [],
   mascotasPequeñas: [],
   accesorios: [],
-  medicamentos: []
+  farmacia: []
 };
 
 const ProductContext = createContext();
@@ -16,8 +16,7 @@ const ProductContext = createContext();
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState(initialProducts);
   const [loading, setLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false); // Nuevo estado
-
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Cargar productos desde Firestore
   useEffect(() => {
