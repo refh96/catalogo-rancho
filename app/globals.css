@@ -72,7 +72,7 @@ body {
   }
   
   /* Títulos del carrito y elementos importantes */
-  h2, h3, h4 {
+  h3, h4 {
     color: #000000 !important;
   }
   
@@ -88,6 +88,11 @@ body {
   
   /* Botones de comuna y selección */
   button[type="button"] {
+    color: #000000 !important;
+  }
+  
+  /* Cantidad de productos en el carrito */
+  span {
     color: #000000 !important;
   }
   
