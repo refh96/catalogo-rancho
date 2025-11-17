@@ -70,4 +70,29 @@ body {
   .font-medium {
     color: #000000 !important;
   }
+  
+  /* Títulos del carrito y elementos importantes */
+  h2, h3, h4 {
+    color: #000000 !important;
+  }
+  
+  /* Botones de cantidad y contadores */
+  button {
+    color: #000000 !important;
+  }
+  
+  /* Texto de totales y precios */
+  .text-lg, .font-bold {
+    color: #000000 !important;
+  }
+  
+  /* Botones de comuna y selección */
+  button[type="button"] {
+    color: #000000 !important;
+  }
+  
+  /* Enlaces y elementos clickeables */
+  a, .hover\\:text-gray-700 {
+    color: #000000 !important;
+  }
 }

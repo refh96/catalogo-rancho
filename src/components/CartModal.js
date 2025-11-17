@@ -148,14 +148,14 @@ export default function CartModal({ isOpen, onClose }) {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
-                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"
+                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-black font-medium hover:bg-gray-300"
                       >
                         -
                       </button>
                       <span>{item.quantity || 1}</span>
                       <button
                         onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
-                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"
+                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-black font-medium hover:bg-gray-300"
                       >
                         +
                       </button>
@@ -171,9 +171,9 @@ export default function CartModal({ isOpen, onClose }) {
               </div>
               
               <div className="mt-6 border-t pt-4">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total:</span>
-                  <span>${subtotal.toLocaleString()}</span>
+                <div className="flex justify-between text-lg font-bold text-black">
+                  <span className="text-black">Total:</span>
+                  <span className="text-black">${subtotal.toLocaleString()}</span>
                 </div>
                 {orderType === 'delivery' && (
                   <div className="text-sm text-gray-600 text-center mt-2">
@@ -265,8 +265,8 @@ export default function CartModal({ isOpen, onClose }) {
                             <button
                               type="button"
                               onClick={() => setOrderDetailsState({...orderDetailsState, comuna: 'hualpen'})}
-                              className={`px-3 py-1 text-sm border rounded ${
-                                orderDetailsState.comuna === 'hualpen' ? 'bg-amber-100 border-amber-500 font-medium' : 'border-gray-300'
+                              className={`px-3 py-1 text-sm border rounded font-medium ${
+                                orderDetailsState.comuna === 'hualpen' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
                               }`}
                             >
                               Hualpén
@@ -274,8 +274,8 @@ export default function CartModal({ isOpen, onClose }) {
                             <button
                               type="button"
                               onClick={() => setOrderDetailsState({...orderDetailsState, comuna: 'concepcion'})}
-                              className={`px-3 py-1 text-sm border rounded ${
-                                orderDetailsState.comuna === 'concepcion' ? 'bg-amber-100 border-amber-500 font-medium' : 'border-gray-300'
+                              className={`px-3 py-1 text-sm border rounded font-medium ${
+                                orderDetailsState.comuna === 'concepcion' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
                               }`}
                             >
                               Concepción
@@ -283,8 +283,8 @@ export default function CartModal({ isOpen, onClose }) {
                             <button
                               type="button"
                               onClick={() => setOrderDetailsState({...orderDetailsState, comuna: 'talcahuano'})}
-                              className={`px-3 py-1 text-sm border rounded ${
-                                orderDetailsState.comuna === 'talcahuano' ? 'bg-amber-100 border-amber-500 font-medium' : 'border-gray-300'
+                              className={`px-3 py-1 text-sm border rounded font-medium ${
+                                orderDetailsState.comuna === 'talcahuano' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
                               }`}
                             >
                               Talcahuano
@@ -316,7 +316,7 @@ export default function CartModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       onClick={() => setIsCheckingOut(false)}
-                      className="px-4 py-2 border rounded-lg"
+                      className="px-4 py-2 border rounded-lg text-black font-medium hover:bg-gray-100 border-gray-300"
                     >
                       Volver al carrito
                     </button>
