@@ -33,6 +33,55 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const [isListening, setIsListening] = useState(false);
+  const [browserSupportsSpeechRecognition, setBrowserSupportsSpeechRecognition] = useState(false);
+  const [speechRecognition, setSpeechRecognition] = useState(null);
+
+  useEffect(() => {
+    // Check if browser supports speech recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      setBrowserSupportsSpeechRecognition(true);
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'es-ES';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setSearchTerm(transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Error en el reconocimiento de voz:', event.error);
+        setIsListening(false);
+        showAlert('Error al usar el micrófono. Asegúrate de otorgar los permisos necesarios.', 'error');
+      };
+
+      setSpeechRecognition(recognition);
+    }
+  }, []);
+
+  const toggleVoiceRecognition = () => {
+    if (!browserSupportsSpeechRecognition) {
+      showAlert('Tu navegador no soporta reconocimiento de voz', 'error');
+      return;
+    }
+
+    if (isListening) {
+      speechRecognition.stop();
+      setIsListening(false);
+    } else {
+      try {
+        speechRecognition.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error('Error al iniciar el reconocimiento de voz:', err);
+        showAlert('Error al acceder al micrófono. Por favor verifica los permisos.', 'error');
+      }
+    }
+  };
   
   // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
@@ -258,13 +307,42 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Buscar productos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-9 sm:pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Buscar productos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-9 sm:pl-10 pr-12 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleVoiceRecognition}
+                    className={`absolute right-2 p-1 rounded-full ${isListening ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:text-indigo-600'}`}
+                    aria-label="Buscar por voz"
+                    title="Buscar por voz"
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-6 w-6" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" 
+                      />
+                    </svg>
+                  </button>
+                  {isListening && (
+                    <span className="absolute right-10 text-sm text-red-600 animate-pulse">
+                      Escuchando...
+                    </span>
+                  )}
+                </div>
               </div>
               
               {/* Filtro por precio */}
