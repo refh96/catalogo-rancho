@@ -117,7 +117,7 @@ export default function Home() {
         
         // Palabras clave para cada etapa de vida
         const keywords = {
-          cachorro: ['cachorro', 'puppy', 'cachorrito', 'cachorra', 'cachorros'],
+          cachorro: ['cachorro', 'puppy', 'cachorrito', 'cachorra', 'cachorros', 'kitten', 'kiten', 'gatito', 'gatitos'],
           adulto: ['adulto', 'adult', 'adulta', 'adultos', 'adultas'],
           senior: ['senior', 'sénior', 'anciano', 'mayor', 'veterano', 'golden']
         };
