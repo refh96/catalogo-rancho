@@ -24,3 +24,50 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Mejoras de contraste para dispositivos móviles */
+@media (max-width: 640px) {
+  /* Inputs con mejor contraste en móvil */
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  select,
+  textarea {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    -webkit-appearance: none;
+    -webkit-text-fill-color: #000000 !important;
+  }
+  
+  input::placeholder,
+  textarea::placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Texto del carrito con mejor contraste */
+  .text-gray-600 {
+    color: #374151 !important;
+  }
+  
+  .text-gray-500 {
+    color: #4b5563 !important;
+  }
+  
+  .text-gray-700 {
+    color: #1f2937 !important;
+  }
+  
+  /* Asegurar buen contraste en labels */
+  label {
+    color: #111827 !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Mejorar visibilidad de precios y cantidades */
+  .font-medium {
+    color: #000000 !important;
+  }
+}

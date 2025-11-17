@@ -227,7 +227,8 @@ export default function CartModal({ isOpen, onClose }) {
                         required
                         value={orderDetailsState.name}
                         onChange={(e) => setOrderDetailsState({...orderDetailsState, name: e.target.value})}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        placeholder="Ingresa tu nombre completo"
                       />
                     </div>
                     
@@ -240,7 +241,8 @@ export default function CartModal({ isOpen, onClose }) {
                         required
                         value={orderDetailsState.phone}
                         onChange={(e) => setOrderDetailsState({...orderDetailsState, phone: e.target.value})}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        placeholder="Ingresa tu número de teléfono"
                       />
                     </div>
 
@@ -254,7 +256,8 @@ export default function CartModal({ isOpen, onClose }) {
                           required
                           value={orderDetailsState.address}
                           onChange={(e) => setOrderDetailsState({...orderDetailsState, address: e.target.value})}
-                          className="w-full p-2 border rounded mb-2"
+                          className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 mb-2"
+                          placeholder="Ingresa tu dirección completa"
                         />
                         <div className="mb-2">
                           <p className="text-sm font-medium text-gray-700 mb-1">Comuna:</p>
@@ -299,7 +302,7 @@ export default function CartModal({ isOpen, onClose }) {
                         required
                         value={orderDetailsState.paymentMethod}
                         onChange={(e) => setOrderDetailsState({...orderDetailsState, paymentMethod: e.target.value})}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                       >
                         <option value="">Selecciona un método de pago</option>
                         <option value="efectivo">Efectivo al recibir</option>
