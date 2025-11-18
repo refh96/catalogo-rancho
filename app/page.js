@@ -17,7 +17,8 @@ export default function Home() {
     name: '',
     price: '',
     category: 'perros',
-    image: ''
+    image: '',
+    stock: ''
   });
   const [loginData, setLoginData] = useState({
     username: '',
@@ -164,6 +165,12 @@ export default function Home() {
   };
 
   const handleAddToCart = (product) => {
+    // Verificar si hay stock disponible
+    const currentStock = product.stock || 0;
+    if (currentStock <= 0) {
+      showAlert('Este producto está agotado', 'error');
+      return;
+    }
     addToCart(product);
     showAlert(`"${product.name}" agregado al carrito`, 'success');
   };
@@ -180,7 +187,8 @@ export default function Home() {
     const newProduct = {
       name: formData.name,
       price: Number(formData.price),
-      image: formData.image || `https://via.placeholder.com/300x200?text=${encodeURIComponent(formData.name)}`
+      image: formData.image || `https://via.placeholder.com/300x200?text=${encodeURIComponent(formData.name)}`,
+      stock: Number(formData.stock) || 0
     };
     
     if (editingProduct) {
@@ -195,7 +203,8 @@ export default function Home() {
       name: '',
       price: '',
       category: 'perros',
-      image: ''
+      image: '',
+      stock: ''
     });
     setEditingProduct(null);
     setShowAddProduct(false);
@@ -206,7 +215,8 @@ export default function Home() {
       name: product.name,
       price: product.price,
       category: category,
-      image: product.image
+      image: product.image,
+      stock: product.stock || ''
     });
     setEditingProduct({ id: product.id, category });
     setShowAddProduct(true);
@@ -475,12 +485,31 @@ export default function Home() {
                   <div className="p-3 sm:p-4">
                     <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-1 line-clamp-2">{product.name}</h3>
                     <p className="text-indigo-600 font-bold text-sm sm:text-base">${product.price.toLocaleString('es-CL')}</p>
+                    
+                    {/* Estado del stock */}
+                    <div className="mt-2">
+                      {product.stock > 0 ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Stock disponible{user && ` (${product.stock})`}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Agotado temporalmente
+                        </span>
+                      )}
+                    </div>
+                    
                     <div className="mt-3 sm:mt-4 flex justify-between items-center">
                       <button 
                         onClick={() => handleAddToCart({ ...product, category: activeCategory })}
-                        className="px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-xs sm:text-sm transition-colors duration-200"
+                        disabled={product.stock <= 0}
+                        className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm transition-colors duration-200 ${
+                          product.stock > 0 
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
                       >
-                        Agregar al carrito
+                        {product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
                       </button>
                       {user && (
                         <div className="flex space-x-1 sm:space-x-2">
@@ -522,7 +551,8 @@ export default function Home() {
                   name: '',
                   price: '',
                   category: 'perros',
-                  image: ''
+                  image: '',
+                  stock: ''
                 });
                 setShowAddProduct(true);
               }}
@@ -674,6 +704,22 @@ export default function Home() {
                     <option value="accesorios">Accesorios y Juguetes</option>
                     <option value="farmacia">Farmacia</option>
                   </select>
+                </div>
+                
+                <div className="mb-3 sm:mb-4">
+                  <label htmlFor="product-stock" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    Stock
+                  </label>
+                  <input
+                    type="number"
+                    id="product-stock"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
+                    required
+                    min="0"
+                    placeholder="0"
+                  />
                 </div>
                 
                 <div className="mb-4 sm:mb-6">
