@@ -184,7 +184,7 @@ export default function Encuentrenos() {
                 </p>
                 <p className="text-gray-700">
                   <span className="font-semibold">Email:</span><br />
-                  contacto@ranchomascotashualpen.cl
+                  ranchomascotas.ccp@gmail.com
                 </p>
                 <p className="text-gray-700">
                   <span className="font-semibold">Instagram:</span><br />
