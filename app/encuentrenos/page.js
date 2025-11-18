@@ -14,17 +14,17 @@ export default function Encuentrenos() {
               <img 
                 src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
                 alt="Logo Rancho de Mascotas Hualpén"
-                className="w-10 h-10 rounded-full border-2 border-indigo-600 object-cover"
+                className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 object-cover"
                 onError={(e) => {
                   e.target.style.display = 'none';
                   e.target.nextElementSibling.style.display = 'flex';
                 }}
               />
-              <div className="w-10 h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" style={{display: 'none'}}>
+              <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" style={{display: 'none'}}>
                 <span className="text-white text-sm font-bold">RM</span>
               </div>
-              <Link href="/" className="text-xl sm:text-2xl font-bold text-indigo-600">
-                Rancho de Mascotas Hualpén
+              <Link href="/" className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Rancho Mascotas Hualpén
               </Link>
             </div>
             <nav className="hidden md:flex space-x-8">
@@ -192,7 +192,7 @@ export default function Encuentrenos() {
                 </p>
                 <div className="pt-4 space-y-2">
                   <a 
-                    href="mailto:contacto@ranchomascotashualpen.cl"
+                    href="mailto:ranchomascotas.ccp@gmail.com"
                     className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors w-full justify-center"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
