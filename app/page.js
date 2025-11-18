@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useProducts } from '../src/contexts/ProductContext';
 import { useCart } from '../src/contexts/CartContext';
@@ -249,15 +250,35 @@ export default function Home() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-lg sm:text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
+            <div className="flex items-center space-x-3">
+              <img 
+                src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
+                alt="Logo Rancho de Mascotas Hualpén"
+                className="w-10 h-10 rounded-full border-2 border-indigo-600 object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div className="w-10 h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" style={{display: 'none'}}>
+                <span className="text-white text-sm font-bold">RM</span>
+              </div>
+              <h1 className="text-lg sm:text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
+            </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
-            <button 
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
-              aria-label="Carrito de compras"
-            >
-              <CartIcon />
-            </button>
+              <Link 
+                href="/encuentrenos"
+                className="hidden sm:block px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                Encuéntrenos
+              </Link>
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                className="relative p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
+                aria-label="Carrito de compras"
+              >
+                <CartIcon />
+              </button>
             
             {!user ? (
               <button 
