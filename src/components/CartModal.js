@@ -79,7 +79,7 @@ export default function CartModal({ isOpen, onClose }) {
                    `*Total:* $${total.toLocaleString('es-CL')}%0A%0A`;
     
     // Abrir WhatsApp Web con el mensaje prellenado
-    window.open(`https://wa.me/56958994306?text=${message}`, '_blank');
+    window.open(`https://wa.me/56923708742?text=${message}`, '_blank');
   };
 
   const getPaymentMethodText = (method) => {
