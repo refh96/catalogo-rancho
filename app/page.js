@@ -87,17 +87,27 @@ export default function Home() {
   };
   
   // Filtrar y ordenar productos
+  const normalizeText = (text) =>
+    text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      // Unificar unidades de peso sueltas: k, kg, kilo, kilos, kgs -> kg
+      .replace(/\b(k|kg|kilo|kilos|kgs?)\b/g, 'kg')
+      // Unificar número + unidad: 12 kg, 12k, 12 kilos, 12kgs -> 12kg
+      .replace(/(\d+)\s*(k|kg|kilo|kilos|kgs?)/g, '$1kg');
   const filteredProducts = useMemo(() => {
     console.log('Actualizando productos. Etapa de vida actual:', lifeStage);
     console.log('Productos a filtrar:', products[activeCategory]);
     let result = products[activeCategory] || [];
     
-    // Filtrar por término de búsqueda
+    // Filtrar por término de búsqueda (todas las palabras, en cualquier orden)
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(term)
-      );
+      const terms = normalizeText(searchTerm).split(/\s+/).filter(Boolean);
+      result = result.filter(product => {
+        const name = normalizeText(product.name);
+        return terms.every(term => name.includes(term));
+      });
     }
 
     // Filtrar por precio
@@ -114,8 +124,7 @@ export default function Home() {
       console.log('Filtrando por etapa de vida:', lifeStage);
       result = result.filter(product => {
         // Normalizar el nombre para hacer la búsqueda sin importar mayúsculas ni acentos
-        const name = product.name.toLowerCase()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Eliminar acentos
+        const name = normalizeText(product.name); // Eliminar acentos
         
         // Palabras clave para cada etapa de vida
         const keywords = {
