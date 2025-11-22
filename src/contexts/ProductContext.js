@@ -27,7 +27,11 @@ export function ProductProvider({ children }) {
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         // Solo actualizar si no estamos en medio de una actualización
         if (!isUpdating) {
-          const loadedProducts = { ...initialProducts };
+          // Crear un nuevo objeto con arrays vacíos para evitar reutilizar referencias
+          const loadedProducts = Object.keys(initialProducts).reduce((acc, key) => {
+            acc[key] = [];
+            return acc;
+          }, {});
           
           querySnapshot.forEach((doc) => {
             const productData = doc.data();
