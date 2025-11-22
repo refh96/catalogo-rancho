@@ -7,6 +7,7 @@ import { useProducts } from '../src/contexts/ProductContext';
 import { useCart } from '../src/contexts/CartContext';
 import CartIcon from '../src/components/CartIcon';
 import CartModal from '../src/components/CartModal';
+import BarcodeScanner from '../src/components/BarcodeScannerClient';
 
 export default function Home() {
   const { user, login, logout } = useAuth();
@@ -19,7 +20,8 @@ export default function Home() {
     price: '',
     category: 'perros',
     image: '',
-    stock: ''
+    stock: '',
+    barcode: ''
   });
   const [loginData, setLoginData] = useState({
     username: '',
@@ -39,6 +41,8 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [browserSupportsSpeechRecognition, setBrowserSupportsSpeechRecognition] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState(null);
+  const [showSearchScanner, setShowSearchScanner] = useState(false);
+  const [showProductScanner, setShowProductScanner] = useState(false);
 
   useEffect(() => {
     // Check if browser supports speech recognition
@@ -198,7 +202,8 @@ export default function Home() {
       name: formData.name,
       price: Number(formData.price),
       image: formData.image || `https://via.placeholder.com/300x200?text=${encodeURIComponent(formData.name)}`,
-      stock: Number(formData.stock) || 0
+      stock: Number(formData.stock) || 0,
+      barcode: formData.barcode || ''
     };
     
     if (editingProduct) {
@@ -214,7 +219,8 @@ export default function Home() {
       price: '',
       category: 'perros',
       image: '',
-      stock: ''
+      stock: '',
+      barcode: ''
     });
     setEditingProduct(null);
     setShowAddProduct(false);
@@ -226,10 +232,47 @@ export default function Home() {
       price: product.price,
       category: category,
       image: product.image,
-      stock: product.stock || ''
+      stock: product.stock || '',
+      barcode: product.barcode || ''
     });
     setEditingProduct({ id: product.id, category });
     setShowAddProduct(true);
+  };
+
+  const handleBarcodeProductDetected = (code) => {
+    setFormData((prev) => ({
+      ...prev,
+      barcode: code
+    }));
+    setShowProductScanner(false);
+    showAlert('Código de barras escaneado correctamente', 'success');
+  };
+
+  const handleBarcodeSearchDetected = (code) => {
+    let foundProduct = null;
+    let foundCategory = null;
+
+    Object.entries(products).forEach(([category, items]) => {
+      if (foundProduct) return;
+      const match = (items || []).find((p) => p.barcode === code);
+      if (match) {
+        foundProduct = match;
+        foundCategory = category;
+      }
+    });
+
+    if (foundProduct && foundCategory) {
+      setActiveCategory(foundCategory);
+      setSearchTerm(foundProduct.name);
+      setPriceFilter('all');
+      setLifeStage('all');
+      setSortBy('name');
+      showAlert(`Producto encontrado: "${foundProduct.name}"`, 'success');
+    } else {
+      showAlert('No se encontró ningún producto con ese código de barras', 'error');
+    }
+
+    setShowSearchScanner(false);
   };
 
   const handleDeleteProduct = (productId, category) => {
@@ -458,6 +501,32 @@ export default function Home() {
               Mostrando {filteredProducts.length} {filteredProducts.length === 1 ? 'producto' : 'productos'}
               {searchTerm && ` para "${searchTerm}"`}
             </div>
+
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSearchScanner(true)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 4h4" />
+                  <path d="M16 4h4" />
+                  <path d="M4 20h4" />
+                  <path d="M16 20h4" />
+                  <rect x="5" y="7" width="14" height="10" rx="2" ry="2" />
+                </svg>
+                <span className="ml-1">Escanear código</span>
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -493,17 +562,14 @@ export default function Home() {
                   <div className="w-full h-40 sm:h-48 bg-white rounded-t-lg overflow-hidden border-b border-gray-200">
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                       {product.image ? (
-                        <Image
+                        <img
                           src={product.image}
                           alt={product.name}
-                          width={150}
-                          height={150}
                           className="w-auto h-auto max-h-full object-contain"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = 'https://via.placeholder.com/150?text=Sin+imagen';
                           }}
-                          unoptimized={!product.image.startsWith('http')}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-50">
@@ -582,7 +648,8 @@ export default function Home() {
                   price: '',
                   category: 'perros',
                   image: '',
-                  stock: ''
+                  stock: '',
+                  barcode: ''
                 });
                 setShowAddProduct(true);
               }}
@@ -674,7 +741,9 @@ export default function Home() {
                       name: '',
                       price: '',
                       category: 'perros',
-                      image: ''
+                      image: '',
+                      stock: '',
+                      barcode: ''
                     });
                     setEditingProduct(null);
                   }}
@@ -751,6 +820,32 @@ export default function Home() {
                     placeholder="0"
                   />
                 </div>
+
+                <div className="mb-3 sm:mb-4">
+                  <label htmlFor="product-barcode" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    Código de barras (opcional)
+                  </label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      id="product-barcode"
+                      value={formData.barcode}
+                      onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
+                      placeholder="Escanea o escribe el código"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowProductScanner(true)}
+                      className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Escanear
+                    </button>
+                  </div>
+                  {formData.barcode && (
+                    <p className="mt-1 text-xs text-gray-500">Código actual: {formData.barcode}</p>
+                  )}
+                </div>
                 
                 <div className="mb-4 sm:mb-6">
                   <label htmlFor="product-image" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
@@ -776,7 +871,9 @@ export default function Home() {
                         name: '',
                         price: '',
                         category: 'perros',
-                        image: ''
+                        image: '',
+                        stock: '',
+                        barcode: ''
                       });
                       setEditingProduct(null);
                     }}
@@ -792,6 +889,56 @@ export default function Home() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {showSearchScanner && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-screen overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                  Escanear código para buscar producto
+                </h3>
+                <button
+                  onClick={() => setShowSearchScanner(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <BarcodeScanner
+                onDetected={handleBarcodeSearchDetected}
+                onClose={() => setShowSearchScanner(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {showProductScanner && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-screen overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                  Escanear código para este producto
+                </h3>
+                <button
+                  onClick={() => setShowProductScanner(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <BarcodeScanner
+                onDetected={handleBarcodeProductDetected}
+                onClose={() => setShowProductScanner(false)}
+              />
             </div>
           </div>
         )}
