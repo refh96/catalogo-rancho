@@ -4,6 +4,83 @@ import { useState } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
+const formatDateKey = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getInitialDeliveryOptions = () => {
+  const now = new Date();
+  let deliveryDate = new Date(now);
+  const dayOfWeek = deliveryDate.getDay();
+  if (dayOfWeek === 0) {
+    deliveryDate.setDate(deliveryDate.getDate() + 1);
+  }
+  const isBeforeMiddaySlot = now.getHours() < 12 || (now.getHours() === 12 && now.getMinutes() < 30);
+  const deliveryTimeSlot = isBeforeMiddaySlot ? 'morning' : 'afternoon';
+  return {
+    deliveryDay: formatDateKey(deliveryDate),
+    deliveryTimeSlot,
+  };
+};
+
+const getAvailableDeliveryDays = () => {
+  const days = [];
+  const today = new Date();
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    if (date.getDay() === 0) {
+      continue;
+    }
+    days.push(date);
+  }
+  return days;
+};
+
+const formatDeliveryDayOptionLabel = (date) => {
+  const today = new Date();
+  const isToday =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+  const formatter = new Intl.DateTimeFormat('es-CL', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+  });
+  const formatted = formatter.format(date);
+  if (isToday) {
+    return `Hoy - ${formatted}`;
+  }
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+};
+
+const formatDeliveryDayForMessage = (deliveryDay) => {
+  if (!deliveryDay) return '';
+  const [year, month, day] = deliveryDay.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const formatter = new Intl.DateTimeFormat('es-CL', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+  });
+  const formatted = formatter.format(date);
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+};
+
+const getTimeSlotText = (slot) => {
+  if (slot === 'morning') {
+    return 'Mañana (12:30 - 14:30)';
+  }
+  if (slot === 'afternoon') {
+    return 'Tarde (19:00 - 21:00)';
+  }
+  return '';
+};
+
 export default function CartModal({ isOpen, onClose }) {
   const {
     cart,
@@ -19,14 +96,19 @@ export default function CartModal({ isOpen, onClose }) {
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  const [orderDetailsState, setOrderDetailsState] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    notes: '',
-    orderType: 'delivery',
-    paymentMethod: 'efectivo', // Valor por defecto para evitar que el usuario no seleccione nada
-    comuna: '' // Nueva propiedad para almacenar la comuna seleccionada
+  const [orderDetailsState, setOrderDetailsState] = useState(() => {
+    const initialDelivery = getInitialDeliveryOptions();
+    return {
+      name: '',
+      phone: '',
+      address: '',
+      notes: '',
+      orderType: 'delivery',
+      paymentMethod: 'efectivo', // Valor por defecto para evitar que el usuario no seleccione nada
+      comuna: '', // Nueva propiedad para almacenar la comuna seleccionada
+      deliveryDay: initialDelivery.deliveryDay,
+      deliveryTimeSlot: initialDelivery.deliveryTimeSlot,
+    };
   });
 
   const sendWhatsAppMessage = (order) => {
@@ -40,6 +122,12 @@ export default function CartModal({ isOpen, onClose }) {
     const comunaText = order.comuna ? ` (${order.comuna.charAt(0).toUpperCase() + order.comuna.slice(1)})` : '';
     const addressText = order.orderType === 'delivery' 
       ? `%0A*Dirección:* ${order.address || 'No especificada'}${comunaText}` 
+      : '';
+    const deliveryDayText = order.orderType === 'delivery' && order.deliveryDay
+      ? `%0A*Día de entrega:* ${formatDeliveryDayForMessage(order.deliveryDay)}`
+      : '';
+    const deliveryTimeSlotText = order.orderType === 'delivery' && order.deliveryTimeSlot
+      ? `%0A*Horario de entrega:* ${getTimeSlotText(order.deliveryTimeSlot)}`
       : '';
     const paymentMethodText = order.paymentMethod ? `%0A*Método de pago:* ${getPaymentMethodText(order.paymentMethod)}` : '';
     const notesText = order.notes ? `%0A*Notas:* ${order.notes}` : '';
@@ -72,7 +160,7 @@ export default function CartModal({ isOpen, onClose }) {
     // Crear mensaje
     const message = `*Nuevo Pedido de Rancho Mascotas Hualpén*%0A%0A` +
                    `*Productos:*%0A${productsText}%0A%0A` +
-                   `*Tipo de pedido:* ${orderTypeText}${addressText}` +
+                   `*Tipo de pedido:* ${orderTypeText}${addressText}${deliveryDayText}${deliveryTimeSlotText}` +
                    `${nameText}${phoneText}${paymentMethodText}${notesText}%0A%0A` +
                    `*Subtotal:* $${subtotal.toLocaleString('es-CL')}%0A` +
                    `${orderType === 'delivery' ? shippingMessage : ''}` +
@@ -288,6 +376,48 @@ export default function CartModal({ isOpen, onClose }) {
                               }`}
                             >
                               Talcahuano
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mb-2">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Día de entrega:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">(Lunes a Sábado)</p>
+                          <select
+                            required
+                            value={orderDetailsState.deliveryDay}
+                            onChange={(e) => setOrderDetailsState({...orderDetailsState, deliveryDay: e.target.value})}
+                            className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                          >
+                            {getAvailableDeliveryDays().map((date) => {
+                              const value = formatDateKey(date);
+                              return (
+                                <option key={value} value={value}>
+                                  {formatDeliveryDayOptionLabel(date)}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                        <div className="mb-2">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Horario de entrega:</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOrderDetailsState({...orderDetailsState, deliveryTimeSlot: 'morning'})}
+                              className={`px-3 py-1 text-sm border rounded font-medium ${
+                                orderDetailsState.deliveryTimeSlot === 'morning' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                              }`}
+                            >
+                              Mañana (12:30 - 14:30)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOrderDetailsState({...orderDetailsState, deliveryTimeSlot: 'afternoon'})}
+                              className={`px-3 py-1 text-sm border rounded font-medium ${
+                                orderDetailsState.deliveryTimeSlot === 'afternoon' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                              }`}
+                            >
+                              Tarde (19:00 - 21:00)
                             </button>
                           </div>
                         </div>
