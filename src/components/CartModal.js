@@ -111,6 +111,16 @@ export default function CartModal({ isOpen, onClose }) {
     };
   });
 
+  const now = new Date();
+  const todayKey = formatDateKey(now);
+  const isAfterOnePM =
+    now.getHours() > 13 || (now.getHours() === 13 && now.getMinutes() > 0);
+  const isAfterSevenThirtyPM =
+    now.getHours() > 19 || (now.getHours() === 19 && now.getMinutes() > 30);
+  const isTodaySelected = orderDetailsState.deliveryDay === todayKey;
+  const isMorningSlotDisabled = isTodaySelected && isAfterOnePM;
+  const isAfternoonSlotDisabled = isTodaySelected && isAfterSevenThirtyPM;
+
   const sendWhatsAppMessage = (order) => {
     // Formatear los productos del carrito
     const productsText = cart.map(item => 
@@ -184,6 +194,36 @@ export default function CartModal({ isOpen, onClose }) {
     // Validar que se haya seleccionado una comuna si es envío
     if (orderType === 'delivery' && !orderDetailsState.comuna) {
       alert('Por favor seleccione una comuna para el envío');
+      return;
+    }
+    const submitNow = new Date();
+    const submitTodayKey = formatDateKey(submitNow);
+    const isAfterOnePMAtSubmit =
+      submitNow.getHours() > 13 || (submitNow.getHours() === 13 && submitNow.getMinutes() > 0);
+    const isTodaySelectedAtSubmit = orderDetailsState.deliveryDay === submitTodayKey;
+    const isMorningSlotDisabledAtSubmit = isTodaySelectedAtSubmit && isAfterOnePMAtSubmit;
+    const isAfterSevenThirtyPMAtSubmit =
+      submitNow.getHours() > 19 || (submitNow.getHours() === 19 && submitNow.getMinutes() > 30);
+    const isAfternoonSlotDisabledAtSubmit = isTodaySelectedAtSubmit && isAfterSevenThirtyPMAtSubmit;
+
+    if (
+      orderType === 'delivery' &&
+      isMorningSlotDisabledAtSubmit &&
+      orderDetailsState.deliveryTimeSlot === 'morning'
+    ) {
+      alert(
+        'El horario de mañana (12:30 - 14:30) ya no está disponible para hoy. Por favor selecciona el horario de la tarde o cambia el día de entrega.'
+      );
+      return;
+    }
+    if (
+      orderType === 'delivery' &&
+      isAfternoonSlotDisabledAtSubmit &&
+      orderDetailsState.deliveryTimeSlot === 'afternoon'
+    ) {
+      alert(
+        'El horario de tarde (19:00 - 21:00) ya no está disponible para hoy. Por favor selecciona un día de entrega siguiente.'
+      );
       return;
     }
     // Combinar los detalles del pedido con el tipo de pedido actual
@@ -403,18 +443,40 @@ export default function CartModal({ isOpen, onClose }) {
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
-                              onClick={() => setOrderDetailsState({...orderDetailsState, deliveryTimeSlot: 'morning'})}
+                              onClick={() => {
+                                if (isMorningSlotDisabled) return;
+                                setOrderDetailsState({
+                                  ...orderDetailsState,
+                                  deliveryTimeSlot: 'morning',
+                                });
+                              }}
+                              disabled={isMorningSlotDisabled}
                               className={`px-3 py-1 text-sm border rounded font-medium ${
-                                orderDetailsState.deliveryTimeSlot === 'morning' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                                isMorningSlotDisabled
+                                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
+                                  : orderDetailsState.deliveryTimeSlot === 'morning'
+                                  ? 'bg-amber-100 border-amber-500 text-black'
+                                  : 'bg-white border-gray-300 text-black hover:bg-gray-50'
                               }`}
                             >
                               Mañana (12:30 - 14:30)
                             </button>
                             <button
                               type="button"
-                              onClick={() => setOrderDetailsState({...orderDetailsState, deliveryTimeSlot: 'afternoon'})}
+                              onClick={() => {
+                                if (isAfternoonSlotDisabled) return;
+                                setOrderDetailsState({
+                                  ...orderDetailsState,
+                                  deliveryTimeSlot: 'afternoon',
+                                });
+                              }}
+                              disabled={isAfternoonSlotDisabled}
                               className={`px-3 py-1 text-sm border rounded font-medium ${
-                                orderDetailsState.deliveryTimeSlot === 'afternoon' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                                isAfternoonSlotDisabled
+                                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
+                                  : orderDetailsState.deliveryTimeSlot === 'afternoon'
+                                  ? 'bg-amber-100 border-amber-500 text-black'
+                                  : 'bg-white border-gray-300 text-black hover:bg-gray-50'
                               }`}
                             >
                               Tarde (19:00 - 21:00)
