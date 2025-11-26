@@ -7,6 +7,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const [error, setError] = useState(null);
   const [isStarting, setIsStarting] = useState(true);
+  const [restartCounter, setRestartCounter] = useState(0);
 
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
@@ -57,12 +58,18 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         console.error('Error al resetear el escaner', e);
       }
     };
-  }, [onDetected]);
+  }, [onDetected, restartCounter]);
 
   const handleCloseClick = () => {
     if (onClose) {
       onClose();
     }
+  };
+
+  const handleVideoClick = () => {
+    setError(null);
+    setIsStarting(true);
+    setRestartCounter((prev) => prev + 1);
   };
 
   return (
@@ -74,6 +81,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           autoPlay
           muted
           playsInline
+          onClick={handleVideoClick}
         />
       </div>
       {isStarting && !error && (
@@ -81,6 +89,11 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       )}
       {error && (
         <p className="text-sm text-red-600">{error}</p>
+      )}
+      {!error && !isStarting && (
+        <p className="text-xs text-gray-500">
+          Si la camara no enfoca bien, toca sobre el video para intentar reenfocar.
+        </p>
       )}
       <button
         type="button"
