@@ -76,6 +76,14 @@ body {
 
 /* Mejoras de contraste para dispositivos móviles */
 @media (max-width: 640px) {
+  /* En móviles forzamos la paleta clara sin importar el tema global */
+  :root,
+  :root[data-theme='dark'],
+  :root[data-theme='light'] {
+    --background: #ffffff;
+    --foreground: #111827;
+  }
+
   /* Inputs con mejor contraste en móvil */
   input[type="text"],
   input[type="tel"],
@@ -115,12 +123,20 @@ body {
     color: #111827 !important;
     font-weight: 500 !important;
   }
-  
+
   /* Mejorar visibilidad de precios y cantidades */
   .font-medium {
     color: var(--foreground) !important;
   }
-  
+
+  /* Asegurar íconos oscuros legibles */
+  svg,
+  svg * {
+    color: #111827 !important;
+    stroke: #111827 !important;
+    fill: #111827 !important;
+  }
+
   /* Títulos del carrito y elementos importantes */
   h2, h3, h4 {
     color: var(--foreground) !important;
