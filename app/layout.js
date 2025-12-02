@@ -5,6 +5,7 @@ import './globals.css';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { ProductProvider } from '../src/contexts/ProductContext';
 import { CartProvider } from '../src/contexts/CartContext';
+import { ThemeProvider } from '../src/contexts/ThemeContext';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -16,13 +17,15 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#f59e0b" />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <ProductProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </ProductProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ProductProvider>
+              <CartProvider>
+                {children}
+              </CartProvider>
+            </ProductProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

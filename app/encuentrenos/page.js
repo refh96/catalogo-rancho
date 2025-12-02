@@ -253,9 +253,13 @@ export default function Encuentrenos() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">📹 Conoce nuestro local</h3>
                 <div className="max-w-2xl mx-auto">
                   <img 
-                    src="https://lh3.googleusercontent.com/p/AF1QipNSogkT8e76Pq4Nn2_UQHei89I6HA-VAy08rUFD=s1360-w1360-h1020"
+                    src="https://i.ibb.co/XH7nD58/rancho.jpg"
                     alt="Rancho de Mascotas Hualpén - Nuestro local"
                     className="w-full rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/800x450?text=Rancho+Mascotas+Hualp%C3%A9n';
+                    }}
                   />
                   <p className="text-center text-gray-600 text-sm mt-4">
                     <a href="https://www.instagram.com/rancho.mascotas.hualpen/" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 font-medium">

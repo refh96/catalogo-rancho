@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useProducts } from '../src/contexts/ProductContext';
 import { useCart } from '../src/contexts/CartContext';
+import { useTheme } from '../src/contexts/ThemeContext';
 import CartIcon from '../src/components/CartIcon';
 import CartModal from '../src/components/CartModal';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
@@ -12,6 +13,7 @@ import BarcodeScanner from '../src/components/BarcodeScannerClient';
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
+  const { theme, toggleTheme } = useTheme();
   const [activeCategory, setActiveCategory] = useState('perros');
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -43,6 +45,9 @@ export default function Home() {
   const [speechRecognition, setSpeechRecognition] = useState(null);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
   const [showProductScanner, setShowProductScanner] = useState(false);
+  const [siteVisits, setSiteVisits] = useState(0);
+  const [cartMetrics, setCartMetrics] = useState([]);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     // Check if browser supports speech recognition
@@ -69,6 +74,73 @@ export default function Home() {
       setSpeechRecognition(recognition);
     }
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const registerVisit = async () => {
+      try {
+        const response = await fetch('/api/visits', { method: 'POST' });
+        if (!response.ok) {
+          throw new Error('Failed to increment visits');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setSiteVisits(Number(data.visits ?? 0));
+        }
+      } catch (error) {
+        console.error('Error registrando la visita del sitio:', error);
+        try {
+          const response = await fetch('/api/visits');
+          if (!response.ok) return;
+          const data = await response.json();
+          if (isMounted) {
+            setSiteVisits(Number(data.visits ?? 0));
+          }
+        } catch (fallbackError) {
+          console.error('Error obteniendo las visitas del sitio:', fallbackError);
+        }
+      }
+    };
+
+    registerVisit();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCartMetrics = async () => {
+      try {
+        const response = await fetch('/api/cart-metrics');
+        if (!response.ok) {
+          throw new Error('Failed to load cart metrics');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setCartMetrics(data.metrics || []);
+        }
+      } catch (error) {
+        console.error('Error cargando las métricas del carrito:', error);
+      }
+    };
+
+    loadCartMetrics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const clearSearchTerm = () => {
+    setSearchTerm('');
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
 
   const toggleVoiceRecognition = () => {
     if (!browserSupportsSpeechRecognition) {
@@ -159,8 +231,108 @@ export default function Home() {
     }
 
     return result;
-  }, [products, activeCategory, searchTerm, priceFilter, sortBy, lifeStage]); // Añadido lifeStage a las dependencias
+  }, [products, activeCategory, searchTerm, priceFilter, lifeStage, sortBy]);
 
+  const flatProducts = useMemo(() => {
+    if (!products) return [];
+    return Object.values(products)
+      .filter(Array.isArray)
+      .flat()
+      .filter(Boolean);
+  }, [products]);
+
+  const cartMetricsMap = useMemo(() => {
+    if (!cartMetrics?.length) return {};
+    return cartMetrics.reduce((acc, metric) => {
+      if (!metric?.productId) return acc;
+      acc[metric.productId] = metric;
+      return acc;
+    }, {});
+  }, [cartMetrics]);
+
+  const catalogStats = useMemo(() => {
+    if (!flatProducts.length && !cartMetrics.length) {
+      return {
+        totalProducts: 0,
+        totalStock: 0,
+        avgPrice: 0,
+        lowStockCount: 0,
+        mostOrdered: [],
+        leastOrdered: [],
+        categoryDistribution: []
+      };
+    }
+
+    const totalProducts = flatProducts.length;
+    const totalStock = flatProducts.reduce((sum, product) => sum + Number(product.stock || 0), 0);
+    const avgPrice = totalProducts
+      ? Math.round(
+          flatProducts.reduce((sum, product) => sum + Number(product.price || 0), 0) / totalProducts
+        )
+      : 0;
+    const lowStockCount = flatProducts.filter((product) => Number(product.stock || 0) <= 5).length;
+
+    const withOrdersMetric = flatProducts.map((product) => {
+      const metric = cartMetricsMap[product.id];
+      return {
+        ...product,
+        ordersMetric: Number(metric?.cartAdds ?? 0)
+      };
+    });
+
+    const existingProductIds = new Set(flatProducts.map((product) => product.id));
+    const metricsOnlyProducts = cartMetrics
+      .filter((metric) => metric.productId && !existingProductIds.has(metric.productId))
+      .map((metric) => ({
+        id: metric.productId,
+        name: metric.productName || 'Producto sin nombre',
+        category: metric.category || 'otros',
+        price: 0,
+        stock: 0,
+        ordersMetric: Number(metric.cartAdds || 0)
+      }));
+
+    const rankingPool = [...withOrdersMetric, ...metricsOnlyProducts];
+
+    const mostOrdered = rankingPool
+      .filter((product) => (product.ordersMetric || 0) > 0)
+      .sort((a, b) => (b.ordersMetric || 0) - (a.ordersMetric || 0))
+      .slice(0, 5);
+    const leastOrdered = rankingPool
+      .sort((a, b) => (a.ordersMetric || 0) - (b.ordersMetric || 0))
+      .slice(0, 5);
+
+    const categoryMap = withOrdersMetric.reduce((acc, product) => {
+      const category = typeof product.category === 'string' && product.category.trim()
+        ? product.category
+        : 'otros';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
+
+    const categoryDistribution = Object.entries(categoryMap).map(([category, count]) => ({
+      category,
+      count,
+      percentage: totalProducts ? Math.round((count / totalProducts) * 100) : 0
+    }));
+
+    return {
+      totalProducts,
+      totalStock,
+      avgPrice,
+      lowStockCount,
+      mostOrdered,
+      leastOrdered,
+      categoryDistribution
+    };
+  }, [flatProducts, cartMetrics, cartMetricsMap]);
+
+  const formatCategoryLabel = (category) => {
+    if (category === 'mascotasPequeñas') return 'Mascotas pequeñas';
+    if (category === 'otros') return 'Otros';
+    if (!category) return 'Sin categoría';
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -178,6 +350,46 @@ export default function Home() {
     logout();
   };
 
+  const recordCartMetric = useCallback(
+    async (product) => {
+      if (!product?.id) return;
+      try {
+        const response = await fetch('/api/cart-metrics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            productId: product.id,
+            productName: product.name,
+            category: product.category || activeCategory || 'otros'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to record cart metric');
+        }
+
+        const data = await response.json();
+        setCartMetrics((prev) => {
+          const others = prev.filter((metric) => metric.productId !== data.productId);
+          return [
+            ...others,
+            {
+              productId: data.productId,
+              productName: product.name || data.productName || 'Producto sin nombre',
+              category: product.category || data.category || activeCategory || 'otros',
+              cartAdds: Number(data.cartAdds ?? 0)
+            }
+          ];
+        });
+      } catch (error) {
+        console.error('Error registrando métrica de carrito:', error);
+      }
+    },
+    [activeCategory]
+  );
+
   const handleAddToCart = (product) => {
     // Verificar si hay stock disponible
     const currentStock = product.stock || 0;
@@ -187,6 +399,7 @@ export default function Home() {
     }
     addToCart(product);
     showAlert(`"${product.name}" agregado al carrito`, 'success');
+    recordCartMetric(product);
   };
 
   const showAlert = (message, type = 'success') => {
@@ -282,7 +495,13 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div
+      className={`min-h-screen flex flex-col ${
+        theme === 'dark'
+          ? 'bg-gray-950 text-gray-100'
+          : 'bg-gray-50 text-gray-900'
+      }`}
+    >
       {/* Sistema de Alertas */}
       {alert && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 ${
@@ -318,6 +537,42 @@ export default function Home() {
               <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="hidden sm:inline-flex items-center px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                {theme === 'dark' ? (
+                  <>
+                    {/* Sol para modo claro */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1 text-yellow-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M10 3.5a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM10 15.5a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM4.22 5.64a1 1 0 011.42-1.42h0a1 1 0 11-1.42 1.42zM14.36 15.78a1 1 0 011.42-1.42h0a1 1 0 11-1.42 1.42zM3.5 10a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM15.5 10a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM4.22 14.36a1 1 0 010-1.42h0a1 1 0 111.42 1.42h0a1 1 0 01-1.42 0zM14.36 4.22a1 1 0 010-1.42h0a1 1 0 111.42 1.42h0a1 1 0 01-1.42 0z" />
+                      <path d="M10 6.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" />
+                    </svg>
+                    <span>Modo claro</span>
+                  </>
+                ) : theme === 'light' ? (
+                  <>
+                    {/* Luna para modo oscuro */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1 text-indigo-600"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M17.293 13.293A8 8 0 016.707 2.707 6 6 0 1017.293 13.293z" />
+                    </svg>
+                    <span>Modo oscuro</span>
+                  </>
+                ) : (
+                  <span>Tema</span>
+                )}
+              </button>
               <Link 
                 href="/encuentrenos"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -421,12 +676,35 @@ export default function Home() {
                 </div>
                 <div className="relative flex items-center">
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Buscar productos..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="block w-full pl-9 sm:pl-10 pr-12 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
                   />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={clearSearchTerm}
+                      className="absolute right-10 p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
+                      aria-label="Limpiar búsqueda"
+                      title="Limpiar búsqueda"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 8.586l2.95-2.95a1 1 0 111.414 1.414L11.414 10l2.95 2.95a1 1 0 01-1.414 1.414L10 11.414l-2.95 2.95a1 1 0 01-1.414-1.414L8.586 10l-2.95-2.95A1 1 0 017.05 5.636L10 8.586z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={toggleVoiceRecognition}
@@ -450,7 +728,7 @@ export default function Home() {
                     </svg>
                   </button>
                   {isListening && (
-                    <span className="absolute right-10 text-sm text-red-600 animate-pulse">
+                    <span className="absolute right-20 text-sm text-red-600 animate-pulse">
                       Escuchando...
                     </span>
                   )}
@@ -528,6 +806,87 @@ export default function Home() {
               </button>
             </div>
           </div>
+
+          {user && (
+            <section className="mb-6 bg-white/95 dark:bg-gray-900/70 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-800 shadow-lg p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Panel de estadísticas</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Solo visible para administradores</p>
+                </div>
+                <div className="text-sm sm:text-base font-medium text-indigo-600 dark:text-indigo-300">
+                  Visitas al sitio: <span className="text-gray-900 dark:text-white">{siteVisits.toLocaleString('es-CL')}</span>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Productos totales</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{catalogStats.totalProducts}</p>
+                </div>
+                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Stock acumulado</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{catalogStats.totalStock.toLocaleString('es-CL')}</p>
+                </div>
+                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Precio promedio</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${catalogStats.avgPrice.toLocaleString('es-CL')}</p>
+                </div>
+                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Bajo stock (≤5)</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{catalogStats.lowStockCount}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">Más solicitados</h4>
+                    <span className="text-xs text-gray-500">Top 5</span>
+                  </div>
+                  {catalogStats.mostOrdered.length ? (
+                    <ul className="space-y-2">
+                      {catalogStats.mostOrdered.map((product) => (
+                        <li key={`most-${product.id}`} className="flex items-center justify-between text-sm">
+                          <span className="truncate text-gray-800 dark:text-gray-200">{product.name || 'Sin nombre'}</span>
+                          <span className="ml-3 inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-200">
+                            {(product.ordersMetric || 0).toLocaleString('es-CL')} pedidos
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">Aún no hay datos suficientes.</p>
+                  )}
+                </div>
+
+              </div>
+
+              <div className="mt-6">
+                <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Distribución por categoría</h4>
+                {catalogStats.categoryDistribution.length ? (
+                  <div className="flex items-end space-x-3 h-40">
+                    {catalogStats.categoryDistribution.map(({ category, percentage, count }) => (
+                      <div key={category} className="flex-1 flex flex-col items-center">
+                        <div
+                          className="w-full rounded-t-lg bg-gradient-to-t from-indigo-500 to-purple-500 text-white text-xs font-semibold flex items-end justify-center"
+                          style={{ height: `${Math.max(percentage, 5)}%` }}
+                          title={`${count} productos`}
+                        >
+                          <span className="pb-1">{percentage}%</span>
+                        </div>
+                        <p className="mt-2 text-xs text-center text-gray-600 dark:text-gray-300">
+                          {category === 'mascotasPequeñas' ? 'Mascotas pequeñas' : category}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Agrega productos para ver la distribución.</p>
+                )}
+              </div>
+            </section>
+          )}
 
           {loading ? (
             <div className="col-span-full py-12 text-center">

@@ -1,5 +1,5 @@
 // Importa las funciones que necesitas de los SDK de Firebase
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 // Configuración de Firebase
@@ -12,8 +12,8 @@ const firebaseConfig = {
   appId: "1:503435456406:web:c18f7e1eb1d52d39cef7b7"
 };
 
-// Inicializa Firebase
-const app = initializeApp(firebaseConfig);
+// Inicializa Firebase evitando múltiples instancias tanto en cliente como en servidor
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export { db };

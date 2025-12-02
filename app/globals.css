@@ -19,6 +19,55 @@
   }
 }
 
+:root[data-theme='light'] {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+:root[data-theme='dark'] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* Overrides para clases comunes de Tailwind en modo oscuro */
+:root[data-theme='dark'] .bg-gray-50 {
+  background-color: #020617 !important; /* slate-950 aprox */
+}
+
+:root[data-theme='dark'] .bg-white {
+  background-color: #111827 !important; /* gray-900 aprox */
+}
+
+:root[data-theme='dark'] .border-gray-100,
+:root[data-theme='dark'] .border-gray-200,
+:root[data-theme='dark'] .border-gray-300 {
+  border-color: #374151 !important; /* gray-700 aprox */
+}
+
+:root[data-theme='dark'] .text-gray-900 {
+  color: #f9fafb !important; /* gray-50 */
+}
+
+:root[data-theme='dark'] .text-gray-700 {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+:root[data-theme='dark'] .text-gray-600 {
+  color: #d1d5db !important; /* gray-300 */
+}
+
+:root[data-theme='dark'] .text-gray-500 {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+:root[data-theme='dark'] .text-indigo-600 {
+  color: #a5b4fc !important; /* indigo-200 */
+}
+
+:root[data-theme='dark'] .bg-indigo-700 {
+  background-color: #1d2545 !important; /* tono más suave en oscuro */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -35,10 +84,11 @@ body {
   input[type="search"],
   select,
   textarea {
-    color: #000000 !important;
-    background-color: #ffffff !important;
+    color: var(--foreground) !important;
+    background-color: var(--background) !important;
     -webkit-appearance: none;
-    -webkit-text-fill-color: #000000 !important;
+    appearance: none;
+    -webkit-text-fill-color: var(--foreground) !important;
   }
   
   input::placeholder,
@@ -49,15 +99,15 @@ body {
   
   /* Texto del carrito con mejor contraste */
   .text-gray-600 {
-    color: #374151 !important;
+    color: var(--foreground) !important;
   }
   
   .text-gray-500 {
-    color: #4b5563 !important;
+    color: var(--foreground) !important;
   }
   
   .text-gray-700 {
-    color: #1f2937 !important;
+    color: var(--foreground) !important;
   }
   
   /* Asegurar buen contraste en labels */
@@ -68,36 +118,36 @@ body {
   
   /* Mejorar visibilidad de precios y cantidades */
   .font-medium {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
   
   /* Títulos del carrito y elementos importantes */
   h2, h3, h4 {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
   
   /* Botones de cantidad y contadores */
   button {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
   
   /* Texto de totales y precios */
   .text-lg, .font-bold {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
   
   /* Botones de comuna y selección */
   button[type="button"] {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
   
   /* Cantidad de productos en el carrito */
   span {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
   
   /* Enlaces y elementos clickeables */
   a, .hover\\:text-gray-700 {
-    color: #000000 !important;
+    color: var(--foreground) !important;
   }
 }
