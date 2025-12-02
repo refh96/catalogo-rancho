@@ -808,48 +808,48 @@ export default function Home() {
           </div>
 
           {user && (
-            <section className="mb-6 bg-white/95 dark:bg-gray-900/70 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-800 shadow-lg p-4 sm:p-6">
+            <section className="mb-6 bg-white/95 sm:dark:bg-gray-900/70 backdrop-blur-sm rounded-2xl border border-gray-100 sm:dark:border-gray-800 shadow-lg p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Panel de estadísticas</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Solo visible para administradores</p>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 sm:dark:text-white">Panel de estadísticas</h3>
+                  <p className="text-sm text-gray-500 sm:dark:text-gray-400">Solo visible para administradores</p>
                 </div>
-                <div className="text-sm sm:text-base font-medium text-indigo-600 dark:text-indigo-300">
-                  Visitas al sitio: <span className="text-gray-900 dark:text-white">{siteVisits.toLocaleString('es-CL')}</span>
+                <div className="text-sm sm:text-base font-medium text-indigo-600 sm:dark:text-indigo-300">
+                  Visitas al sitio: <span className="text-gray-900 sm:dark:text-white">{siteVisits.toLocaleString('es-CL')}</span>
                 </div>
               </div>
 
               <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Productos totales</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{catalogStats.totalProducts}</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{catalogStats.totalProducts}</p>
                 </div>
-                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Stock acumulado</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{catalogStats.totalStock.toLocaleString('es-CL')}</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{catalogStats.totalStock.toLocaleString('es-CL')}</p>
                 </div>
-                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Precio promedio</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${catalogStats.avgPrice.toLocaleString('es-CL')}</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">${catalogStats.avgPrice.toLocaleString('es-CL')}</p>
                 </div>
-                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Bajo stock (≤5)</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{catalogStats.lowStockCount}</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{catalogStats.lowStockCount}</p>
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">Más solicitados</h4>
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Más solicitados</h4>
                     <span className="text-xs text-gray-500">Top 5</span>
                   </div>
                   {catalogStats.mostOrdered.length ? (
                     <ul className="space-y-2">
                       {catalogStats.mostOrdered.map((product) => (
                         <li key={`most-${product.id}`} className="flex items-center justify-between text-sm">
-                          <span className="truncate text-gray-800 dark:text-gray-200">{product.name || 'Sin nombre'}</span>
-                          <span className="ml-3 inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-200">
+                          <span className="truncate text-gray-800 sm:dark:text-gray-200">{product.name || 'Sin nombre'}</span>
+                          <span className="ml-3 inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-indigo-50 sm:dark:bg-indigo-900/40 text-indigo-600 sm:dark:text-indigo-200">
                             {(product.ordersMetric || 0).toLocaleString('es-CL')} pedidos
                           </span>
                         </li>
@@ -863,7 +863,7 @@ export default function Home() {
               </div>
 
               <div className="mt-6">
-                <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Distribución por categoría</h4>
+                <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white mb-3">Distribución por categoría</h4>
                 {catalogStats.categoryDistribution.length ? (
                   <div className="flex items-end space-x-3 h-40">
                     {catalogStats.categoryDistribution.map(({ category, percentage, count }) => (
@@ -875,7 +875,7 @@ export default function Home() {
                         >
                           <span className="pb-1">{percentage}%</span>
                         </div>
-                        <p className="mt-2 text-xs text-center text-gray-600 dark:text-gray-300">
+                        <p className="category-label mt-2 text-xs text-center text-gray-600 sm:dark:text-gray-300">
                           {category === 'mascotasPequeñas' ? 'Mascotas pequeñas' : category}
                         </p>
                       </div>

@@ -141,6 +141,28 @@ body {
   h2, h3, h4 {
     color: var(--foreground) !important;
   }
+
+  /* Tarjetas del panel de estadísticas */
+  .bg-white\/95,
+  .bg-white,
+  .bg-white\/90,
+  .bg-white\/80,
+  .bg-white\/70 {
+    background-color: #ffffff !important;
+  }
+
+  .border-gray-100,
+  .border-gray-200,
+  .border-gray-300 {
+    border-color: #e5e7eb !important;
+  }
+
+  .category-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+  }
   
   /* Botones de cantidad y contadores */
   button {
