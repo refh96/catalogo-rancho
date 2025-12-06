@@ -5,11 +5,16 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext({ theme: 'system', toggleTheme: () => {}, setTheme: () => {} });
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'system';
+  const [theme, setTheme] = useState('system');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     const stored = window.localStorage.getItem('theme');
-    return stored === 'light' || stored === 'dark' ? stored : 'system';
-  });
+    if (stored === 'light' || stored === 'dark') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTheme(stored);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;

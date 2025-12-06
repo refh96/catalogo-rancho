@@ -5,16 +5,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const savedCart = window.localStorage.getItem('petStoreCart');
-      return savedCart ? JSON.parse(savedCart) : [];
-    } catch (error) {
-      console.warn('No se pudo cargar el carrito guardado', error);
-      return [];
-    }
-  });
+  const [cart, setCart] = useState([]);
 
   const [orderType, setOrderType] = useState(null); // 'delivery' or 'pickup'
   const [orderDetails, setOrderDetails] = useState({
@@ -23,6 +14,19 @@ export function CartProvider({ children }) {
     address: '',
     paymentMethod: '',
   });
+
+  // Rehidratar carrito solo en el cliente para mantener SSR estable
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedCart = window.localStorage.getItem('petStoreCart');
+      if (!savedCart) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCart(JSON.parse(savedCart));
+    } catch (error) {
+      console.warn('No se pudo cargar el carrito guardado', error);
+    }
+  }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {

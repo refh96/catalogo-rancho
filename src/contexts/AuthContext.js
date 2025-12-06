@@ -3,20 +3,22 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-const getInitialUser = () => {
-  if (typeof window === 'undefined') return null;
-  const savedUser = window.localStorage.getItem('user');
-  if (!savedUser) return null;
-  try {
-    return JSON.parse(savedUser);
-  } catch (error) {
-    console.warn('No se pudo parsear el usuario guardado', error);
-    return null;
-  }
-};
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(getInitialUser);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedUser = window.localStorage.getItem('user');
+    if (!savedUser) return;
+    try {
+      const parsed = JSON.parse(savedUser);
+      // La hidratación SSR necesita inmutabilidad entre servidor y cliente; cargamos el usuario recién al montar.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUser(parsed);
+    } catch (error) {
+      console.warn('No se pudo parsear el usuario guardado', error);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
