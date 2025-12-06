@@ -1,6 +1,7 @@
 // src/components/CartModal.js
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 import { useCart } from '../contexts/CartContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -257,14 +258,18 @@ export default function CartModal({ isOpen, onClose }) {
                 {cart.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-2 border-b">
                     <div className="flex items-center space-x-4">
-                      <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-white border border-gray-200">
-                        <img 
-                          src={item.image} 
+                      <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-white border border-gray-200 relative">
+                        <Image 
+                          src={item.image || 'https://via.placeholder.com/80?text=Sin+imagen'} 
                           alt={item.name} 
-                          className="w-full h-full object-contain p-1"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/80?text=Sin+imagen';
+                          fill
+                          unoptimized
+                          className="object-contain p-1"
+                          sizes="80px"
+                          onError={(event) => {
+                            const target = event.currentTarget;
+                            target.onerror = null;
+                            target.src = 'https://via.placeholder.com/80?text=Sin+imagen';
                           }}
                         />
                       </div>

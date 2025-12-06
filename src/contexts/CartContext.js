@@ -5,7 +5,17 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const savedCart = window.localStorage.getItem('petStoreCart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (error) {
+      console.warn('No se pudo cargar el carrito guardado', error);
+      return [];
+    }
+  });
+
   const [orderType, setOrderType] = useState(null); // 'delivery' or 'pickup'
   const [orderDetails, setOrderDetails] = useState({
     name: '',
@@ -14,20 +24,12 @@ export function CartProvider({ children }) {
     paymentMethod: '',
   });
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('petStoreCart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-  }, []);
-
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (cart.length > 0) {
-      localStorage.setItem('petStoreCart', JSON.stringify(cart));
+      window.localStorage.setItem('petStoreCart', JSON.stringify(cart));
     } else {
-      localStorage.removeItem('petStoreCart');
+      window.localStorage.removeItem('petStoreCart');
     }
   }, [cart]);
 

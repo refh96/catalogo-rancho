@@ -1,9 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Encuentrenos() {
+  const [headerLogoFailed, setHeaderLogoFailed] = useState(false);
+  const [heroLogoFailed, setHeroLogoFailed] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -11,18 +15,21 @@ export default function Encuentrenos() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <img 
-                src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
-                alt="Logo Rancho de Mascotas Hualpén"
-                className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextElementSibling.style.display = 'flex';
-                }}
-              />
-              <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" style={{display: 'none'}}>
-                <span className="text-white text-sm font-bold">RM</span>
-              </div>
+              {!headerLogoFailed ? (
+                <Image
+                  src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
+                  alt="Logo Rancho de Mascotas Hualpén"
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 object-cover"
+                  onError={() => setHeaderLogoFailed(true)}
+                />
+              ) : (
+                <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">RM</span>
+                </div>
+              )}
               <Link href="/" className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Rancho Mascotas Hualpén
               </Link>
@@ -49,21 +56,25 @@ export default function Encuentrenos() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Logo del Local */}
         <div className="text-center mb-12">
-          <div className="inline-block relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
-            <img 
-              src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
-              alt="Logo Rancho de Mascotas Hualpén"
-              className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-white object-cover"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
-              }}
-            />
-            <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-white bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" style={{display: 'none'}}>
-              <span className="text-white text-4xl sm:text-5xl font-bold">RM</span>
+            <div className="inline-block relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
+              {!heroLogoFailed ? (
+                <div className="relative w-32 h-32 sm:w-40 sm:h-40">
+                  <Image
+                    src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
+                    alt="Logo Rancho de Mascotas Hualpén"
+                    fill
+                    unoptimized
+                    className="rounded-full shadow-2xl border-4 border-white object-cover"
+                    onError={() => setHeroLogoFailed(true)}
+                  />
+                </div>
+              ) : (
+                <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-white bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white text-4xl sm:text-5xl font-bold">RM</span>
+                </div>
+              )}
             </div>
-          </div>
         </div>
 
         <div className="text-center mb-12">
@@ -252,15 +263,20 @@ export default function Encuentrenos() {
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">📹 Conoce nuestro local</h3>
                 <div className="max-w-2xl mx-auto">
-                  <img 
-                    src="https://i.ibb.co/XH7nD58/rancho.jpg"
-                    alt="Rancho de Mascotas Hualpén - Nuestro local"
-                    className="w-full rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/800x450?text=Rancho+Mascotas+Hualp%C3%A9n';
-                    }}
-                  />
+                  <div className="relative w-full h-64 sm:h-80 md:h-96">
+                    <Image 
+                      src="https://i.ibb.co/XH7nD58/rancho.jpg"
+                      alt="Rancho de Mascotas Hualpén - Nuestro local"
+                      fill
+                      unoptimized
+                      className="rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 object-cover"
+                      onError={(event) => {
+                        const target = event.currentTarget;
+                        target.onerror = null;
+                        target.src = 'https://via.placeholder.com/800x450?text=Rancho+Mascotas+Hualp%C3%A9n';
+                      }}
+                    />
+                  </div>
                   <p className="text-center text-gray-600 text-sm mt-4">
                     <a href="https://www.instagram.com/rancho.mascotas.hualpen/" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 font-medium">
                       @rancho.mascotas.hualpen

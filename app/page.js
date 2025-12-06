@@ -17,6 +17,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('perros');
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [headerLogoFailed, setHeaderLogoFailed] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -522,20 +523,23 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3 ml-2 sm:ml-0">
-              <img 
+            {!headerLogoFailed ? (
+              <Image
                 src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
                 alt="Logo Rancho de Mascotas Hualpén"
+                width={80}
+                height={80}
+                unoptimized
                 className="w-20 h-20 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextElementSibling.style.display = 'flex';
-                }}
+                onError={() => setHeaderLogoFailed(true)}
               />
-              <div className="w-20 h-20 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" style={{display: 'none'}}>
+            ) : (
+              <div className="w-20 h-20 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                 <span className="text-white text-sm font-bold">RM</span>
               </div>
-              <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
-            </div>
+            )}
+            <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
+          </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 type="button"
@@ -626,11 +630,15 @@ export default function Home() {
               <div className="mt-8 relative lg:mt-0">
                 <div className="relative mx-auto w-full rounded-lg shadow-lg">
                   <div className="relative block w-full bg-white rounded-lg overflow-hidden">
-                    <img
-                      className="w-full h-48 sm:h-64 object-cover"
-                      src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80"
-                      alt="Mascotas felices"
-                    />
+                    <div className="relative w-full h-48 sm:h-64">
+                      <Image
+                        src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80"
+                        alt="Mascotas felices"
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -921,15 +929,21 @@ export default function Home() {
                   <div className="w-full h-40 sm:h-48 bg-white rounded-t-lg overflow-hidden border-b border-gray-200">
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                       {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-auto h-auto max-h-full object-contain"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/150?text=Sin+imagen';
-                          }}
-                        />
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            unoptimized
+                            className="object-contain"
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            onError={(event) => {
+                              const target = event.currentTarget;
+                              target.onerror = null;
+                              target.src = 'https://via.placeholder.com/150?text=Sin+imagen';
+                            }}
+                          />
+                        </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-50">
                           <span className="text-xs sm:text-sm text-gray-400">Sin imagen</span>
