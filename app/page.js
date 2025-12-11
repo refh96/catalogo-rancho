@@ -8,6 +8,7 @@ import { useCart } from '../src/contexts/CartContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import CartIcon from '../src/components/CartIcon';
 import CartModal from '../src/components/CartModal';
+import FloatingCartButton from '../src/components/FloatingCartButton';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
 
 export default function Home() {
@@ -864,7 +865,9 @@ export default function Home() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-gray-500">Aún no hay datos suficientes.</p>
+                    <div className="relative min-h-screen bg-gray-50">
+                      <p className="text-sm text-gray-500">Aún no hay datos suficientes.</p>
+                    </div>
                   )}
                 </div>
 
@@ -874,7 +877,9 @@ export default function Home() {
                 <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white mb-3">Distribución por categoría</h4>
                 {catalogStats.categoryDistribution.length ? (
                   <div className="flex items-end space-x-3 h-40">
-                    {catalogStats.categoryDistribution.map(({ category, percentage, count }) => (
+                    {catalogStats.categoryDistribution
+                      .filter(({ category }) => category !== 'otros')
+                      .map(({ category, percentage, count }) => (
                       <div key={category} className="flex-1 flex flex-col items-center">
                         <div
                           className="w-full rounded-t-lg bg-gradient-to-t from-indigo-500 to-purple-500 text-white text-xs font-semibold flex items-end justify-center"
@@ -1012,7 +1017,7 @@ export default function Home() {
         </div>
 
       {user && (
-          <div className="fixed bottom-4 sm:bottom-8 right-4 sm:right-8">
+          <div className="fixed bottom-24 sm:bottom-28 right-4 sm:right-8 z-30">
             <button 
               onClick={() => {
                 setEditingProduct(null);
@@ -1326,6 +1331,7 @@ export default function Home() {
         </div>
       </footer>
       
+      <FloatingCartButton onClick={() => setIsCartOpen(true)} />
       {/* Modal del Carrito */}
       <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
