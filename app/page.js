@@ -10,6 +10,13 @@ import CartIcon from '../src/components/CartIcon';
 import CartModal from '../src/components/CartModal';
 import FloatingCartButton from '../src/components/FloatingCartButton';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
+import TextScannerModal from '../src/components/TextScannerModal';
+
+const createEmptyDetails = () => ({
+  composition: '',
+  analysis: [],
+  feedingGuide: ''
+});
 
 export default function Home() {
   const { user, login, logout } = useAuth();
@@ -25,7 +32,8 @@ export default function Home() {
     category: 'perros',
     image: '',
     stock: '',
-    barcode: ''
+    barcode: '',
+    details: createEmptyDetails()
   });
   const [loginData, setLoginData] = useState({
     username: '',
@@ -47,9 +55,140 @@ export default function Home() {
   const [speechRecognition, setSpeechRecognition] = useState(null);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
   const [showProductScanner, setShowProductScanner] = useState(false);
+  const [showTextScanner, setShowTextScanner] = useState(false);
+  const [textScannerTarget, setTextScannerTarget] = useState(null);
   const [siteVisits, setSiteVisits] = useState(0);
   const [cartMetrics, setCartMetrics] = useState([]);
   const searchInputRef = useRef(null);
+
+  const normalizeDetails = (details) => {
+    const base = createEmptyDetails();
+    if (!details) return base;
+    return {
+      composition: details.composition || '',
+      analysis: Array.isArray(details.analysis)
+        ? details.analysis.map((row) => ({
+            label: row?.label || '',
+            value: row?.value || ''
+          }))
+        : [],
+      feedingGuide: details.feedingGuide || ''
+    };
+  };
+
+  const analysisRows = Array.isArray(formData.details?.analysis)
+    ? formData.details.analysis
+    : [];
+
+  const parseAnalysisText = (text) => {
+    if (!text) return [];
+    return text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const colonMatch = line.match(/(.+?)[\s]*[:\-]\s*(.+)/);
+        if (colonMatch) {
+          return {
+            label: colonMatch[1].trim(),
+            value: colonMatch[2].trim()
+          };
+        }
+        const valueMatch = line.match(/(.*?)(\d+[^ ]*)$/);
+        if (valueMatch) {
+          return {
+            label: valueMatch[1].trim(),
+            value: valueMatch[2].trim()
+          };
+        }
+        return { label: line, value: '' };
+      });
+  };
+
+  const handleDetailsChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        [field]: value
+      }
+    }));
+  };
+
+  const handleAnalysisRowChange = (index, key, value) => {
+    setFormData((prev) => {
+      const analysis = Array.isArray(prev.details.analysis)
+        ? [...prev.details.analysis]
+        : [];
+      analysis[index] = {
+        ...analysis[index],
+        [key]: value
+      };
+      return {
+        ...prev,
+        details: {
+          ...prev.details,
+          analysis
+        }
+      };
+    });
+  };
+
+  const addAnalysisRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        analysis: [
+          ...(Array.isArray(prev.details.analysis) ? prev.details.analysis : []),
+          { label: '', value: '' }
+        ]
+      }
+    }));
+  };
+
+  const removeAnalysisRow = (index) => {
+    setFormData((prev) => {
+      const analysis = Array.isArray(prev.details.analysis)
+        ? prev.details.analysis.filter((_, i) => i !== index)
+        : [];
+      return {
+        ...prev,
+        details: {
+          ...prev.details,
+          analysis
+        }
+      };
+    });
+  };
+
+  const openTextScanner = (target) => {
+    setTextScannerTarget(target);
+    setShowTextScanner(true);
+  };
+
+  const closeTextScanner = () => {
+    setShowTextScanner(false);
+    setTextScannerTarget(null);
+  };
+
+  const handleTextScannerDetected = (text) => {
+    if (!textScannerTarget || !text) return;
+    if (textScannerTarget === 'composition') {
+      handleDetailsChange('composition', text.trim());
+    } else if (textScannerTarget === 'feedingGuide') {
+      handleDetailsChange('feedingGuide', text.trim());
+    } else if (textScannerTarget === 'analysis') {
+      const parsed = parseAnalysisText(text);
+      setFormData((prev) => ({
+        ...prev,
+        details: {
+          ...prev.details,
+          analysis: parsed
+        }
+      }));
+    }
+  };
 
   useEffect(() => {
     // Check if browser supports speech recognition
@@ -418,7 +557,8 @@ export default function Home() {
       price: Number(formData.price),
       image: formData.image || `https://via.placeholder.com/300x200?text=${encodeURIComponent(formData.name)}`,
       stock: Number(formData.stock) || 0,
-      barcode: formData.barcode || ''
+      barcode: formData.barcode || '',
+      details: formData.details
     };
     
     if (editingProduct) {
@@ -435,7 +575,8 @@ export default function Home() {
       category: 'perros',
       image: '',
       stock: '',
-      barcode: ''
+      barcode: '',
+      details: createEmptyDetails()
     });
     setEditingProduct(null);
     setShowAddProduct(false);
@@ -448,7 +589,8 @@ export default function Home() {
       category: category,
       image: product.image,
       stock: product.stock || '',
-      barcode: product.barcode || ''
+      barcode: product.barcode || '',
+      details: normalizeDetails(product.details)
     });
     setEditingProduct({ id: product.id, category });
     setShowAddProduct(true);
@@ -929,7 +1071,15 @@ export default function Home() {
                 )}
               </div>
             ) : (
-              filteredProducts.map((product) => (
+              filteredProducts.map((product) => {
+                const productDetails = normalizeDetails(product.details);
+                const hasComposition = Boolean(productDetails.composition?.trim());
+                const hasAnalysis = Array.isArray(productDetails.analysis) && productDetails.analysis.length > 0;
+                const hasFeedingGuide = Boolean(productDetails.feedingGuide?.trim());
+                const hasDetails = hasComposition || hasAnalysis || hasFeedingGuide;
+                const highlightedAnalysis = productDetails.analysis || [];
+
+                return (
                 <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="w-full h-40 sm:h-48 bg-white rounded-t-lg overflow-hidden border-b border-gray-200">
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
@@ -972,7 +1122,49 @@ export default function Home() {
                         </span>
                       )}
                     </div>
-                    
+                    {hasDetails && (
+                      <div className="mt-4 space-y-3 text-xs">
+                        {hasAnalysis && (
+                          <div>
+                            <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
+                              Análisis garantizado
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {highlightedAnalysis.map((row, idx) => (
+                                <span
+                                  key={`${product.id}-analysis-${idx}`}
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-medium"
+                                >
+                                  {row.label && <span className="mr-1">{row.label}:</span>}
+                                  <span>{row.value}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {hasComposition && (
+                          <div>
+                            <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
+                              Composición
+                            </p>
+                            <p className="text-gray-600 text-[11px] leading-relaxed line-clamp-3">
+                              {productDetails.composition}
+                            </p>
+                          </div>
+                        )}
+                        {hasFeedingGuide && (
+                          <div>
+                            <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
+                              Guía de ración diaria
+                            </p>
+                            <p className="text-gray-600 text-[11px] leading-relaxed line-clamp-3 whitespace-pre-line">
+                              {productDetails.feedingGuide}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="mt-3 sm:mt-4 flex justify-between items-center">
                       <button 
                         onClick={() => handleAddToCart({ ...product, category: activeCategory })}
@@ -1010,7 +1202,7 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              ))
+              )})
             )}
           </div>
           )}
@@ -1027,7 +1219,8 @@ export default function Home() {
                   category: 'perros',
                   image: '',
                   stock: '',
-                  barcode: ''
+                  barcode: '',
+                  details: createEmptyDetails()
                 });
                 setShowAddProduct(true);
               }}
@@ -1225,6 +1418,112 @@ export default function Home() {
                   )}
                 </div>
                 
+                <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700">
+                        Composición / ingredientes
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openTextScanner('composition')}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        Escanear texto
+                      </button>
+                    </div>
+                    <textarea
+                      value={formData.details?.composition || ''}
+                      onChange={(e) => handleDetailsChange('composition', e.target.value)}
+                      className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Ej: Harina de carne y hueso, arroz, maíz..."
+                    />
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Escribe o pega la lista de ingredientes tal como aparece en el saco.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700">
+                        Análisis garantizado
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={addAnalysisRow}
+                          className="px-2 py-1 rounded-md border border-gray-300 text-[11px] sm:text-xs bg-white hover:bg-gray-100"
+                        >
+                          + Añadir fila
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openTextScanner('analysis')}
+                          className="px-2 py-1 rounded-md border border-indigo-200 text-[11px] sm:text-xs text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+                        >
+                          Escanear tabla
+                        </button>
+                      </div>
+                    </div>
+                    {analysisRows.length === 0 && (
+                      <p className="text-[11px] text-gray-500 mb-2">
+                        Agrega filas para registrar proteína, grasa, fibra, humedad, calorías, etc.
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      {analysisRows.map((row, index) => (
+                        <div key={index} className="grid grid-cols-5 gap-2">
+                          <input
+                            type="text"
+                            value={row.label}
+                            onChange={(e) => handleAnalysisRowChange(index, 'label', e.target.value)}
+                            className="col-span-3 px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Nutriente"
+                          />
+                          <input
+                            type="text"
+                            value={row.value}
+                            onChange={(e) => handleAnalysisRowChange(index, 'value', e.target.value)}
+                            className="col-span-2 px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Valor"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeAnalysisRow(index)}
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700">
+                        Guía de ración diaria
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openTextScanner('feedingGuide')}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        Escanear guía
+                      </button>
+                    </div>
+                    <textarea
+                      value={formData.details?.feedingGuide || ''}
+                      onChange={(e) => handleDetailsChange('feedingGuide', e.target.value)}
+                      className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Ej: 5-10kg → 150-210 g/día..."
+                    />
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Puedes pegar texto o detallar una tabla de raciones recomendadas.
+                    </p>
+                  </div>
+                </div>
+                
                 <div className="mb-4 sm:mb-6">
                   <label htmlFor="product-image" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     URL de la Imagen (opcional)
@@ -1319,6 +1618,13 @@ export default function Home() {
               />
             </div>
           </div>
+        )}
+
+        {showTextScanner && (
+          <TextScannerModal
+            onDetected={handleTextScannerDetected}
+            onClose={closeTextScanner}
+          />
         )}
       </main>
 
