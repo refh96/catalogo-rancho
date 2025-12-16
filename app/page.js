@@ -59,6 +59,7 @@ export default function Home() {
   const [textScannerTarget, setTextScannerTarget] = useState(null);
   const [siteVisits, setSiteVisits] = useState(0);
   const [cartMetrics, setCartMetrics] = useState([]);
+  const [expandedCompositions, setExpandedCompositions] = useState({});
   const searchInputRef = useRef(null);
 
   const normalizeDetails = (details) => {
@@ -74,6 +75,15 @@ export default function Home() {
         : [],
       feedingGuide: details.feedingGuide || ''
     };
+  };
+
+  const isCompositionLong = (text = '') => text.trim().length > 160;
+
+  const toggleCompositionExpand = (productId) => {
+    setExpandedCompositions((prev) => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
   };
 
   const analysisRows = Array.isArray(formData.details?.analysis)
@@ -1078,6 +1088,8 @@ export default function Home() {
                 const hasFeedingGuide = Boolean(productDetails.feedingGuide?.trim());
                 const hasDetails = hasComposition || hasAnalysis || hasFeedingGuide;
                 const highlightedAnalysis = productDetails.analysis || [];
+                const compositionExpanded = expandedCompositions[product.id];
+                const showReadMore = hasComposition && isCompositionLong(productDetails.composition);
 
                 return (
                 <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -1147,9 +1159,22 @@ export default function Home() {
                             <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
                               Composición
                             </p>
-                            <p className="text-gray-600 text-[11px] leading-relaxed line-clamp-3">
+                            <p
+                              className={`text-gray-600 text-[11px] leading-relaxed whitespace-pre-line ${
+                                compositionExpanded ? '' : 'line-clamp-3'
+                              }`}
+                            >
                               {productDetails.composition}
                             </p>
+                            {showReadMore && (
+                              <button
+                                type="button"
+                                onClick={() => toggleCompositionExpand(product.id)}
+                                className="mt-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                              >
+                                {compositionExpanded ? 'Leer menos' : 'Leer más'}
+                              </button>
+                            )}
                           </div>
                         )}
                         {hasFeedingGuide && (

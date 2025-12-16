@@ -82,6 +82,15 @@ const getTimeSlotText = (slot) => {
   return '';
 };
 
+const BANK_TRANSFER_DETAILS = {
+  holder: 'MINIMARKET NELSON HERRERA MUNOZ EIRL',
+  bank: 'Banco Estado',
+  rut: '76.880.605-5',
+  accountType: 'Chequera electrónica / Cuenta vista',
+  accountNumber: '53570083968',
+  email: 'ndherreram@gmail.com'
+};
+
 export default function CartModal({ isOpen, onClose }) {
   const {
     cart,
@@ -141,6 +150,12 @@ export default function CartModal({ isOpen, onClose }) {
       ? `%0A*Horario de entrega:* ${getTimeSlotText(order.deliveryTimeSlot)}`
       : '';
     const paymentMethodText = order.paymentMethod ? `%0A*Método de pago:* ${getPaymentMethodText(order.paymentMethod)}` : '';
+    const transferDetailsText = order.paymentMethod === 'transferencia'
+      ? `%0A*Datos para transferencia:*%0A${BANK_TRANSFER_DETAILS.holder}%0A${BANK_TRANSFER_DETAILS.bank}%0A${BANK_TRANSFER_DETAILS.rut}%0A${BANK_TRANSFER_DETAILS.accountType}%0A${BANK_TRANSFER_DETAILS.accountNumber}%0A${BANK_TRANSFER_DETAILS.email}`
+      : '';
+    const transferReminderText = order.paymentMethod === 'transferencia'
+      ? `%0A*Recuerda:* Envía tu comprobante de transferencia por WhatsApp para confirmar tu pedido.`
+      : '';
     const notesText = order.notes ? `%0A*Notas:* ${order.notes}` : '';
     const nameText = order.name ? `%0A*Nombre:* ${order.name}` : '';
     const phoneText = order.phone ? `%0A*Teléfono:* ${order.phone}` : '';
@@ -170,11 +185,14 @@ export default function CartModal({ isOpen, onClose }) {
     
     // Crear mensaje
     const message = `*Nuevo Pedido de Rancho Mascotas Hualpén*%0A%0A` +
+                   `*Tipo de pedido:* ${orderTypeText}` +
+                   `${deliveryDayText}${deliveryTimeSlotText}` +
+                   `${nameText}${phoneText}${addressText}%0A%0A` +
                    `*Productos:*%0A${productsText}%0A%0A` +
-                   `*Tipo de pedido:* ${orderTypeText}${addressText}${deliveryDayText}${deliveryTimeSlotText}` +
-                   `${nameText}${phoneText}${paymentMethodText}${notesText}%0A%0A` +
+                   `${paymentMethodText}${transferDetailsText}${transferReminderText}` +
+                   `${notesText}%0A` +
                    `*Subtotal:* $${subtotal.toLocaleString('es-CL')}%0A` +
-                   `${orderType === 'delivery' ? shippingMessage : ''}` +
+                   `${order.orderType === 'delivery' ? shippingMessage : ''}` +
                    `*Total:* $${total.toLocaleString('es-CL')}%0A%0A`;
     
     // Abrir WhatsApp Web con el mensaje prellenado
@@ -506,7 +524,29 @@ export default function CartModal({ isOpen, onClose }) {
                         <option value="transferencia">Transferencia bancaria</option>
                         {orderType === 'delivery' && <option value="tarjeta">Tarjeta de crédito/débito</option>}
                       </select>
+                      {orderDetailsState.paymentMethod === 'transferencia' && (
+                        <div className="mt-3 p-3 border border-amber-400 bg-amber-50 rounded-lg text-xs text-gray-700 space-y-2">
+                          <div>
+                            <p className="font-semibold text-amber-800 uppercase tracking-wide text-[11px]">Datos para transferencia</p>
+                            <p>{BANK_TRANSFER_DETAILS.holder}</p>
+                            <p>{BANK_TRANSFER_DETAILS.bank}</p>
+                            <p>{BANK_TRANSFER_DETAILS.rut}</p>
+                            <p>{BANK_TRANSFER_DETAILS.accountType}</p>
+                            <p>{BANK_TRANSFER_DETAILS.accountNumber}</p>
+                            <p>{BANK_TRANSFER_DETAILS.email}</p>
+                          </div>
+                          <div className="flex items-start space-x-2 text-amber-900">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 mt-[2px]" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 9a1 1 0 112 0v5a1 1 0 11-2 0V9zm1-4a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clipRule="evenodd" />
+                            </svg>
+                            <p>
+                              Recuerda enviar tu comprobante de transferencia por WhatsApp para confirmar tu pedido.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
                   </div>
 
                   <div className="flex justify-end space-x-4 pt-4">
