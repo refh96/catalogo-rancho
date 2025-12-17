@@ -60,6 +60,7 @@ export default function Home() {
   const [siteVisits, setSiteVisits] = useState(0);
   const [cartMetrics, setCartMetrics] = useState([]);
   const [expandedCompositions, setExpandedCompositions] = useState({});
+  const [expandedFeedingGuides, setExpandedFeedingGuides] = useState({});
   const searchInputRef = useRef(null);
 
   const normalizeDetails = (details) => {
@@ -78,9 +79,17 @@ export default function Home() {
   };
 
   const isCompositionLong = (text = '') => text.trim().length > 160;
+  const isFeedingGuideLong = (text = '') => text.trim().length > 160;
 
   const toggleCompositionExpand = (productId) => {
     setExpandedCompositions((prev) => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+
+  const toggleFeedingGuideExpand = (productId) => {
+    setExpandedFeedingGuides((prev) => ({
       ...prev,
       [productId]: !prev[productId]
     }));
@@ -1059,7 +1068,7 @@ export default function Home() {
               <p className="mt-2 text-gray-600">Cargando productos...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr items-stretch">
             {filteredProducts.length === 0 ? (
               <div className="col-span-full py-8 sm:py-12 text-center">
                 <svg className="mx-auto h-10 sm:h-12 w-10 sm:w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1089,11 +1098,27 @@ export default function Home() {
                 const hasDetails = hasComposition || hasAnalysis || hasFeedingGuide;
                 const highlightedAnalysis = productDetails.analysis || [];
                 const compositionExpanded = expandedCompositions[product.id];
+                const feedingGuideExpanded = expandedFeedingGuides[product.id];
                 const showReadMore = hasComposition && isCompositionLong(productDetails.composition);
+                const showFeedingGuideReadMore = hasFeedingGuide && isFeedingGuideLong(productDetails.feedingGuide);
+                const fallbackMeta = [
+                  {
+                    label: 'Categoría',
+                    value: formatCategoryLabel(product.category || activeCategory)
+                  },
+                  product.barcode && {
+                    label: 'Código',
+                    value: product.barcode
+                  },
+                  product.brand && {
+                    label: 'Marca',
+                    value: product.brand
+                  }
+                ].filter(Boolean);
 
                 return (
-                <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  <div className="w-full h-40 sm:h-48 bg-white rounded-t-lg overflow-hidden border-b border-gray-200">
+                <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
+                  <div className="w-full h-40 sm:h-48 bg-white overflow-hidden border-b border-gray-200">
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                       {product.image ? (
                         <div className="relative w-full h-full">
@@ -1118,7 +1143,7 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  <div className="p-3 sm:p-4">
+                  <div className="p-3 sm:p-4 flex flex-col flex-1">
                     <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-1 line-clamp-2">{product.name}</h3>
                     <p className="text-indigo-600 font-bold text-sm sm:text-base">${product.price.toLocaleString('es-CL')}</p>
                     
@@ -1134,97 +1159,137 @@ export default function Home() {
                         </span>
                       )}
                     </div>
-                    {hasDetails && (
-                      <div className="mt-4 space-y-3 text-xs">
-                        {hasAnalysis && (
-                          <div>
-                            <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
-                              Análisis garantizado
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {highlightedAnalysis.map((row, idx) => (
-                                <span
-                                  key={`${product.id}-analysis-${idx}`}
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-medium"
+
+                    <div className="mt-4 space-y-3 text-xs flex-1">
+                      {hasDetails ? (
+                        <>
+                          {hasAnalysis && (
+                            <div>
+                              <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
+                                Análisis garantizado
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {highlightedAnalysis.map((row, idx) => (
+                                  <span
+                                    key={`${product.id}-analysis-${idx}`}
+                                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-medium"
+                                  >
+                                    {row.label && <span className="mr-1">{row.label}:</span>}
+                                    <span>{row.value}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {hasComposition && (
+                            <div>
+                              <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
+                                Composición
+                              </p>
+                              <p
+                                className={`text-gray-600 text-[11px] leading-relaxed whitespace-pre-line ${
+                                  compositionExpanded ? '' : 'line-clamp-3'
+                                }`}
+                              >
+                                {productDetails.composition}
+                              </p>
+                              {showReadMore && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCompositionExpand(product.id)}
+                                  className="mt-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
                                 >
-                                  {row.label && <span className="mr-1">{row.label}:</span>}
-                                  <span>{row.value}</span>
+                                  {compositionExpanded ? 'Leer menos' : 'Leer más'}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {hasFeedingGuide && (
+                            <div>
+                              <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
+                                Guía de ración diaria
+                              </p>
+                              <p
+                                className={`text-gray-600 text-[11px] leading-relaxed whitespace-pre-line ${
+                                  feedingGuideExpanded ? '' : 'line-clamp-3'
+                                }`}
+                              >
+                                {productDetails.feedingGuide}
+                              </p>
+                              {showFeedingGuideReadMore && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleFeedingGuideExpand(product.id)}
+                                  className="mt-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                                >
+                                  {feedingGuideExpanded ? 'Leer menos' : 'Leer más'}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="text-xs bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 h-fit">
+                          <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-2">
+                            Información general
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {fallbackMeta
+                              .filter((meta) => Boolean(meta?.value))
+                              .map((meta) => (
+                                <span
+                                  key={`${product.id}-${meta.label}`}
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white text-gray-700 text-[11px] font-medium border border-gray-200"
+                                >
+                                  <span className="mr-1 text-gray-500">{meta.label}:</span>
+                                  <span>{meta.value}</span>
                                 </span>
                               ))}
-                            </div>
-                          </div>
-                        )}
-                        {hasComposition && (
-                          <div>
-                            <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
-                              Composición
-                            </p>
-                            <p
-                              className={`text-gray-600 text-[11px] leading-relaxed whitespace-pre-line ${
-                                compositionExpanded ? '' : 'line-clamp-3'
-                              }`}
-                            >
-                              {productDetails.composition}
-                            </p>
-                            {showReadMore && (
-                              <button
-                                type="button"
-                                onClick={() => toggleCompositionExpand(product.id)}
-                                className="mt-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
-                              >
-                                {compositionExpanded ? 'Leer menos' : 'Leer más'}
-                              </button>
+                            {fallbackMeta.length === 0 && (
+                              <span className="text-[11px] text-gray-400">
+                                Añade análisis o composición para completar esta tarjeta.
+                              </span>
                             )}
                           </div>
-                        )}
-                        {hasFeedingGuide && (
-                          <div>
-                            <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
-                              Guía de ración diaria
-                            </p>
-                            <p className="text-gray-600 text-[11px] leading-relaxed line-clamp-3 whitespace-pre-line">
-                              {productDetails.feedingGuide}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="mt-3 sm:mt-4 flex justify-between items-center">
-                      <button 
-                        onClick={() => handleAddToCart({ ...product, category: activeCategory })}
-                        disabled={product.stock <= 0}
-                        className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm transition-colors duration-200 ${
-                          product.stock > 0 
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
-                      </button>
-                      {user && (
-                        <div className="flex space-x-1 sm:space-x-2">
-                          <button 
-                            onClick={() => handleEditProduct(product, activeCategory)}
-                            className="p-1 text-yellow-600 hover:text-yellow-700"
-                            title="Editar producto"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.793.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                            </svg>
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProduct(product.id, activeCategory)}
-                            className="p-1 text-red-600 hover:text-red-700"
-                            title="Eliminar producto"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </button>
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-gray-100 bg-gray-50 flex justify-between items-center gap-2">
+                    <button 
+                      onClick={() => handleAddToCart({ ...product, category: activeCategory })}
+                      disabled={product.stock <= 0}
+                      className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm transition-colors duration-200 ${
+                        product.stock > 0 
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
+                    </button>
+                    {user && (
+                      <div className="flex space-x-1 sm:space-x-2">
+                        <button 
+                          onClick={() => handleEditProduct(product, activeCategory)}
+                          className="p-1 text-yellow-600 hover:text-yellow-700"
+                          title="Editar producto"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.793.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteProduct(product.id, activeCategory)}
+                          className="p-1 text-red-600 hover:text-red-700"
+                          title="Eliminar producto"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )})
