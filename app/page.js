@@ -112,7 +112,7 @@ export default function Home() {
   const [loginError, setLoginError] = useState('');
   const [editingProduct, setEditingProduct] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { addToCart } = useCart();
+  const { cart, addToCart } = useCart();
   const [alert, setAlert] = useState(null);
   
   // Estados para búsqueda y filtros
@@ -131,6 +131,7 @@ export default function Home() {
   const [cartMetrics, setCartMetrics] = useState([]);
   const [expandedCompositions, setExpandedCompositions] = useState({});
   const searchInputRef = useRef(null);
+  const voiceInputTargetRef = useRef('search');
 
   const normalizeDetails = (details) => {
     const base = createEmptyDetails();
@@ -304,6 +305,19 @@ export default function Home() {
     updateFeedingGuideTable(() => createEmptyFeedingGuideTable());
   };
 
+  const handleDetailsChange = (field, value) => {
+    setFormData((prev) => {
+      const prevDetails = prev.details || createEmptyDetails();
+      return {
+        ...prev,
+        details: {
+          ...prevDetails,
+          [field]: value
+        }
+      };
+    });
+  };
+
   const handleAnalysisRowChange = (index, key, value) => {
     setFormData((prev) => {
       const analysis = Array.isArray(prev.details.analysis)
@@ -389,7 +403,25 @@ export default function Home() {
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        setSearchTerm(transcript);
+        const target = voiceInputTargetRef.current || 'search';
+
+        if (target === 'composition') {
+          setFormData((prev) => {
+            const prevDetails = prev.details || createEmptyDetails();
+            const prevText = prevDetails.composition || '';
+            const separator = prevText && !prevText.endsWith(' ') ? ' ' : '';
+            return {
+              ...prev,
+              details: {
+                ...prevDetails,
+                composition: `${prevText}${separator}${transcript}`
+              }
+            };
+          });
+        } else {
+          setSearchTerm(transcript);
+        }
+
         setIsListening(false);
       };
 
@@ -470,7 +502,7 @@ export default function Home() {
     }
   };
 
-  const toggleVoiceRecognition = () => {
+  const toggleVoiceRecognition = (target = 'search') => {
     if (!browserSupportsSpeechRecognition) {
       showAlert('Tu navegador no soporta reconocimiento de voz', 'error');
       return;
@@ -481,6 +513,7 @@ export default function Home() {
       setIsListening(false);
     } else {
       try {
+        voiceInputTargetRef.current = target || 'search';
         speechRecognition.start();
         setIsListening(true);
       } catch (err) {
@@ -1045,8 +1078,12 @@ export default function Home() {
                   )}
                   <button
                     type="button"
-                    onClick={toggleVoiceRecognition}
-                    className={`absolute right-2 p-1 rounded-full ${isListening ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:text-indigo-600'}`}
+                    onClick={() => toggleVoiceRecognition('search')}
+                    className={`absolute right-2 p-1 rounded-full ${
+                      isListening && voiceInputTargetRef.current === 'search'
+                        ? 'bg-red-100 text-red-600'
+                        : 'text-gray-500 hover:text-indigo-600'
+                    }`}
                     aria-label="Buscar por voz"
                     title="Buscar por voz"
                   >
@@ -1065,7 +1102,7 @@ export default function Home() {
                       />
                     </svg>
                   </button>
-                  {isListening && (
+                  {isListening && voiceInputTargetRef.current === 'search' && (
                     <span className="absolute right-20 text-sm text-red-600 animate-pulse">
                       Escuchando...
                     </span>
@@ -1281,9 +1318,17 @@ export default function Home() {
                     value: product.brand
                   }
                 ].filter(Boolean);
+                const isInCart = Array.isArray(cart) && cart.some((item) => item.id === product.id);
 
                 return (
-                <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
+                <div
+                  key={product.id}
+                  className={`rounded-lg overflow-hidden flex flex-col h-full transition-shadow duration-300 border ${
+                    isInCart
+                      ? 'bg-orange-50 border-orange-500 shadow-lg'
+                      : 'bg-white border-transparent shadow-md hover:shadow-lg'
+                  }`}
+                >
                   <div className="w-full h-40 sm:h-48 bg-white overflow-hidden border-b border-gray-200">
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                       {product.image ? (
@@ -1314,7 +1359,7 @@ export default function Home() {
                     <p className="text-indigo-600 font-bold text-sm sm:text-base">${product.price.toLocaleString('es-CL')}</p>
                     
                     {/* Estado del stock */}
-                    <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
                       {product.stock > 0 ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           Stock disponible{user && ` (${product.stock})`}
@@ -1322,6 +1367,25 @@ export default function Home() {
                       ) : (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           Agotado temporalmente
+                        </span>
+                      )}
+                      {isInCart && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-3 w-3 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 3h2l.4 2M7 13h10l3-8H6.4M7 13L5.4 5M7 13l-2 5h14M10 21a1 1 0 11-2 0 1 1 0 012 0zm8 0a1 1 0 11-2 0 1 1 0 012 0z"
+                            />
+                          </svg>
+                          <span>En carrito</span>
                         </span>
                       )}
                     </div>
@@ -1379,11 +1443,10 @@ export default function Home() {
                                 <table className="min-w-full text-[10px] sm:text-[11px] text-gray-600">
                                   <thead className="bg-gray-50 text-gray-500">
                                     <tr>
-                                      <th className="px-2 py-2 border-b border-gray-100"></th>
                                       {productDetails.feedingGuideTable.columns.map((column, columnIndex) => (
                                         <th
                                           key={`fg-card-column-${columnIndex}`}
-                                          className="px-2 py-2 text-left font-semibold border-b border-l border-gray-100"
+                                          className="px-2 py-2 text-left font-semibold border-b border-gray-100"
                                         >
                                           {column || `Columna ${columnIndex + 1}`}
                                         </th>
@@ -1393,9 +1456,6 @@ export default function Home() {
                                   <tbody className="divide-y divide-gray-100">
                                     {productDetails.feedingGuideTable.rows.map((row, rowIndex) => (
                                       <tr key={`fg-card-row-${rowIndex}`}>
-                                        <td className="px-2 py-2 font-medium text-gray-700">
-                                          {row.label || ''}
-                                        </td>
                                         {row.values.map((value, columnIndex) => (
                                           <td
                                             key={`fg-card-cell-${rowIndex}-${columnIndex}`}
@@ -1701,13 +1761,35 @@ export default function Home() {
                       <label className="text-xs sm:text-sm font-medium text-gray-700">
                         Composición / ingredientes
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => openTextScanner('composition')}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                      >
-                        Escanear texto
-                      </button>
+                      {browserSupportsSpeechRecognition && (
+                        <button
+                          type="button"
+                          onClick={() => toggleVoiceRecognition('composition')}
+                          className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 ${
+                            isListening && voiceInputTargetRef.current === 'composition'
+                              ? 'bg-red-100 text-red-600'
+                              : 'text-indigo-600 hover:text-indigo-800'
+                          }`}
+                          aria-label="Dictar composición por voz"
+                          title="Dictar composición por voz"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v3m0 0H9m3 0h3M9 9V5a3 3 0 016 0v4a3 3 0 11-6 0z"
+                            />
+                          </svg>
+                          <span>Dictar</span>
+                        </button>
+                      )}
                     </div>
                     <textarea
                       value={formData.details?.composition || ''}
@@ -1732,13 +1814,6 @@ export default function Home() {
                           className="px-2 py-1 rounded-md border border-gray-300 text-[11px] sm:text-xs bg-white hover:bg-gray-100"
                         >
                           + Añadir fila
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openTextScanner('analysis')}
-                          className="px-2 py-1 rounded-md border border-indigo-200 text-[11px] sm:text-xs text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
-                        >
-                          Escanear tabla
                         </button>
                       </div>
                     </div>
@@ -1814,14 +1889,14 @@ export default function Home() {
                       </div>
 
                       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-                        <table className="min-w-full text-[11px] sm:text-xs">
+                        <table className="min-w-full w-max text-[11px] sm:text-xs">
                           <thead className="bg-gray-50 text-gray-600">
                             <tr>
-                              <th className="min-w-[140px] px-3 py-2 border-b border-gray-200"></th>
+                              <th className="w-[40px] px-1 py-2 border-b border-gray-200 text-center"></th>
                               {feedingGuideTable.columns.map((column, columnIndex) => (
                                 <th
                                   key={`fg-column-${columnIndex}`}
-                                  className="px-3 py-2 text-left font-semibold border-b border-l border-gray-200"
+                                  className="px-3 py-2 text-left font-semibold border-b border-l border-gray-200 min-w-[120px]"
                                 >
                                   <div className="flex items-center gap-1">
                                     <input
@@ -1849,26 +1924,17 @@ export default function Home() {
                           <tbody className="divide-y divide-gray-200">
                             {feedingGuideTable.rows.map((row, rowIndex) => (
                               <tr key={`fg-row-${rowIndex}`}>
-                                <td className="px-3 py-2 align-top">
-                                  <div className="flex items-start gap-2">
-                                    <input
-                                      type="text"
-                                      value={row.label}
-                                      onChange={(e) => handleFeedingGuideRowLabelChange(rowIndex, e.target.value)}
-                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                      placeholder="Ej: 5-10 kg"
-                                    />
-                                    {feedingGuideTable.rows.length > MIN_FEEDING_GUIDE_ROWS && (
-                                      <button
-                                        type="button"
-                                        onClick={() => removeFeedingGuideRow(rowIndex)}
-                                        className="text-gray-400 hover:text-red-500"
-                                        title="Eliminar fila"
-                                      >
-                                        ✕
-                                      </button>
-                                    )}
-                                  </div>
+                                <td className="w-[40px] px-1 py-2 align-top text-center">
+                                  {feedingGuideTable.rows.length > MIN_FEEDING_GUIDE_ROWS && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeFeedingGuideRow(rowIndex)}
+                                      className="text-gray-400 hover:text-red-500"
+                                      title="Eliminar fila"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
                                 </td>
                                 {feedingGuideTable.columns.map((_, columnIndex) => (
                                   <td key={`fg-cell-${rowIndex}-${columnIndex}`} className="px-2 py-2 align-top">
