@@ -13,10 +13,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es" className="scroll-smooth">
       <head>
+        <title>Rancho Mascotas Hualpén</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f59e0b" />
         <link rel="icon" href="/logo.png" />
-
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
