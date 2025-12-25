@@ -1351,11 +1351,11 @@ export default function Home() {
                   key={productCardKey || product.id}
                   className={`group rounded-2xl overflow-hidden flex flex-col transition-all duration-300 border ${
                     isInCart
-                      ? 'bg-orange-50/90 border-orange-400 shadow-xl shadow-orange-100'
-                      : 'bg-white/95 border-gray-100 shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)]'
+                      ? 'bg-orange-50/90 border-orange-400 shadow-xl shadow-orange-100 dark:bg-orange-900/30 dark:border-orange-600 dark:shadow-orange-900/40'
+                      : 'bg-white/95 border-gray-100 shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)] dark:bg-slate-800/80 dark:border-slate-700 dark:shadow-[0_20px_40px_rgba(15,23,42,0.35)]'
                   }`}
                 >
-                  <div className="w-full h-40 sm:h-48 bg-white overflow-hidden border-b border-gray-200">
+                  <div className="w-full h-40 sm:h-48 bg-white dark:bg-slate-900 overflow-hidden border-b border-gray-200 dark:border-slate-700">
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                       {product.image ? (
                         <div className="relative w-full h-full">
@@ -1374,8 +1374,8 @@ export default function Home() {
                           />
                         </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                          <span className="text-xs sm:text-sm text-gray-400">Sin imagen</span>
+                        <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-slate-800">
+                          <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">Sin imagen</span>
                         </div>
                       )}
                     </div>
@@ -1383,15 +1383,15 @@ export default function Home() {
                   <div className="p-4 flex flex-col flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-h-[80px] sm:min-h-[96px]">
-                        <p className="text-[11px] uppercase tracking-[0.15em] text-gray-400">
+                        <p className="text-[11px] uppercase tracking-[0.15em] text-gray-400 dark:text-gray-300">
                           {formattedCategory}
                         </p>
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mt-1 mb-1 line-clamp-2">
+                        <p className="text-base sm:text-lg font-semibold text-black dark:text-black mt-1 mb-1 line-clamp-2">
                           {product.name}
-                        </h3>
+                        </p>
                       </div>
                       {product.brand && (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 whitespace-nowrap">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-700 whitespace-nowrap">
                           {product.brand}
                         </span>
                       )}
@@ -1409,7 +1409,7 @@ export default function Home() {
                     {/* Estado del stock */}
                     <div className="mt-4 flex items-center gap-2 flex-wrap">
                       {product.stock > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-3.5 w-3.5"
@@ -1422,12 +1422,12 @@ export default function Home() {
                           Stock disponible{user && ` (${product.stock})`}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100 dark:bg-red-900/30 dark:text-red-200 dark:border-red-700">
                           Agotado temporalmente
                         </span>
                       )}
                       {isInCart && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-700">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-3.5 w-3.5"
@@ -1449,12 +1449,12 @@ export default function Home() {
 
                     <div className="mt-5 flex-1">
                       {hasDetails ? (
-                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-indigo-700 shadow-sm">
+                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-100 shadow-sm">
                           <p className="text-[12px] font-semibold mb-2">Información nutricional disponible</p>
                           <button
                             type="button"
                             onClick={() => openDetailsModal(product)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
                           >
                             <span>Ver detalles completos</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1463,22 +1463,22 @@ export default function Home() {
                           </button>
                         </div>
                       ) : (
-                        <div className="text-xs bg-gradient-to-br from-gray-50 via-white to-white border border-gray-100 rounded-2xl p-4 h-fit shadow-sm">
-                          <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-3">
+                        <div className="text-xs bg-gradient-to-br from-gray-50 via-white to-white border border-gray-100 rounded-2xl p-4 h-fit shadow-sm dark:bg-gray-900/60 dark:border-gray-700">
+                          <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-3 dark:text-gray-300">
                             Información general
                           </p>
-                          <dl className="space-y-2">
+                          <dl className="space-y-2 text-gray-700 dark:text-gray-200">
                             {fallbackMeta
                               .filter((meta) => Boolean(meta?.value))
                               .map((meta) => (
-                                <div key={`${product.id}-${meta.label}`} className="flex items-center justify-between text-[11px] text-gray-700">
-                                  <dt className="font-semibold text-gray-500">{meta.label}</dt>
-                                  <dd className="text-gray-900">{meta.value}</dd>
+                                <div key={`${product.id}-${meta.label}`} className="flex items-center justify-between text-[11px]">
+                                  <dt className="font-semibold text-gray-500 dark:text-gray-400">{meta.label}</dt>
+                                  <dd className="text-gray-900 dark:text-gray-100">{meta.value}</dd>
                                 </div>
                               ))}
                           </dl>
                           {fallbackMeta.length === 0 && (
-                            <span className="text-[11px] text-gray-400">
+                            <span className="text-[11px] text-gray-400 dark:text-gray-500">
                               Añade análisis o composición para completar esta tarjeta.
                             </span>
                           )}
@@ -1487,7 +1487,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-gray-100 bg-gray-50 flex justify-between items-center gap-2">
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-gray-100 bg-gray-50 flex justify-between items-center gap-2 dark:border-slate-700 dark:bg-slate-900/60">
                     <button 
                       onClick={() => handleAddToCart({ ...product, category: activeCategory })}
                       disabled={product.stock <= 0}
