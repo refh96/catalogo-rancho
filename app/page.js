@@ -88,6 +88,8 @@ const cloneFeedingGuideTable = (table) => {
   };
 };
 
+const getProductCardKey = (product) => product?.id ?? product?.barcode ?? product?.name;
+
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
@@ -130,6 +132,7 @@ export default function Home() {
   const [siteVisits, setSiteVisits] = useState(0);
   const [cartMetrics, setCartMetrics] = useState([]);
   const [expandedCompositions, setExpandedCompositions] = useState({});
+  const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   const searchInputRef = useRef(null);
   const voiceInputTargetRef = useRef('search');
 
@@ -157,6 +160,17 @@ export default function Home() {
       [productId]: !prev[productId]
     }));
   };
+  
+  const openDetailsModal = (product) => {
+    if (!product) return;
+    setSelectedProductDetails({
+      product,
+      details: normalizeDetails(product.details),
+      cardKey: getProductCardKey(product)
+    });
+  };
+
+  const closeDetailsModal = () => setSelectedProductDetails(null);
 
   const analysisRows = Array.isArray(formData.details?.analysis)
     ? formData.details.analysis
@@ -434,6 +448,15 @@ export default function Home() {
       setSpeechRecognition(recognition);
     }
   }, []);
+
+  useEffect(() => {
+    if (!selectedProductDetails) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedProductDetails]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1273,7 +1296,7 @@ export default function Home() {
               <p className="mt-2 text-gray-600">Cargando productos...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
             {filteredProducts.length === 0 ? (
               <div className="col-span-full py-8 sm:py-12 text-center">
                 <svg className="mx-auto h-10 sm:h-12 w-10 sm:w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1296,20 +1319,23 @@ export default function Home() {
               </div>
             ) : (
               filteredProducts.map((product) => {
+                const productCardKey = getProductCardKey(product);
                 const productDetails = normalizeDetails(product.details);
                 const hasComposition = Boolean(productDetails.composition?.trim());
                 const hasAnalysis = Array.isArray(productDetails.analysis) && productDetails.analysis.length > 0;
                 const hasFeedingGuideTable = hasFeedingGuideTableData(productDetails.feedingGuideTable);
                 const hasDetails = hasComposition || hasAnalysis || hasFeedingGuideTable;
                 const highlightedAnalysis = productDetails.analysis || [];
-                const compositionExpanded = expandedCompositions[product.id];
+                const compositionExpanded = expandedCompositions[productCardKey];
                 const showReadMore = hasComposition && isCompositionLong(productDetails.composition);
+                const formattedCategory = formatCategoryLabel(product.category || activeCategory);
+                const showSku = Boolean(user);
                 const fallbackMeta = [
                   {
                     label: 'Categoría',
-                    value: formatCategoryLabel(product.category || activeCategory)
+                    value: formattedCategory
                   },
-                  product.barcode && {
+                  showSku && product.barcode && {
                     label: 'Código',
                     value: product.barcode
                   },
@@ -1322,11 +1348,11 @@ export default function Home() {
 
                 return (
                 <div
-                  key={product.id}
-                  className={`rounded-lg overflow-hidden flex flex-col h-full transition-shadow duration-300 border ${
+                  key={productCardKey || product.id}
+                  className={`group rounded-2xl overflow-hidden flex flex-col transition-all duration-300 border ${
                     isInCart
-                      ? 'bg-orange-50 border-orange-500 shadow-lg'
-                      : 'bg-white border-transparent shadow-md hover:shadow-lg'
+                      ? 'bg-orange-50/90 border-orange-400 shadow-xl shadow-orange-100'
+                      : 'bg-white/95 border-gray-100 shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)]'
                   }`}
                 >
                   <div className="w-full h-40 sm:h-48 bg-white overflow-hidden border-b border-gray-200">
@@ -1354,26 +1380,57 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  <div className="p-3 sm:p-4 flex flex-col flex-1">
-                    <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-1 line-clamp-2">{product.name}</h3>
-                    <p className="text-indigo-600 font-bold text-sm sm:text-base">${product.price.toLocaleString('es-CL')}</p>
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-h-[80px] sm:min-h-[96px]">
+                        <p className="text-[11px] uppercase tracking-[0.15em] text-gray-400">
+                          {formattedCategory}
+                        </p>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mt-1 mb-1 line-clamp-2">
+                          {product.name}
+                        </h3>
+                      </div>
+                      {product.brand && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 whitespace-nowrap">
+                          {product.brand}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-3 text-white shadow-inner">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-100/80">Precio</p>
+                      <p className="text-2xl font-semibold leading-tight">
+                        ${product.price.toLocaleString('es-CL')}
+                      </p>
+                      {showSku && product.barcode && (
+                        <p className="text-[10px] text-indigo-100/90 mt-1">SKU {product.barcode}</p>
+                      )}
+                    </div>
                     
                     {/* Estado del stock */}
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <div className="mt-4 flex items-center gap-2 flex-wrap">
                       {product.stock > 0 ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
                           Stock disponible{user && ` (${product.stock})`}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100">
                           Agotado temporalmente
                         </span>
                       )}
                       {isInCart && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-3 w-3 mr-1"
+                            className="h-3.5 w-3.5"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -1390,114 +1447,41 @@ export default function Home() {
                       )}
                     </div>
 
-                    <div className="mt-4 space-y-3 text-xs flex-1">
+                    <div className="mt-5 flex-1">
                       {hasDetails ? (
-                        <>
-                          {hasAnalysis && (
-                            <div>
-                              <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
-                                Análisis garantizado
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {highlightedAnalysis.map((row, idx) => (
-                                  <span
-                                    key={`${product.id}-analysis-${idx}`}
-                                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-medium"
-                                  >
-                                    {row.label && <span className="mr-1">{row.label}:</span>}
-                                    <span>{row.value}</span>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {hasComposition && (
-                            <div>
-                              <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
-                                Composición
-                              </p>
-                              <p
-                                className={`text-gray-600 text-[11px] leading-relaxed whitespace-pre-line ${
-                                  compositionExpanded ? '' : 'line-clamp-3'
-                                }`}
-                              >
-                                {productDetails.composition}
-                              </p>
-                              {showReadMore && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleCompositionExpand(product.id)}
-                                  className="mt-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
-                                >
-                                  {compositionExpanded ? 'Leer menos' : 'Leer más'}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          {hasFeedingGuideTable && (
-                            <div>
-                              <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-1">
-                                Guía de ración diaria
-                              </p>
-                              <div className="overflow-x-auto rounded-lg border border-gray-100 bg-white">
-                                <table className="min-w-full text-[10px] sm:text-[11px] text-gray-600">
-                                  <thead className="bg-gray-50 text-gray-500">
-                                    <tr>
-                                      {productDetails.feedingGuideTable.columns.map((column, columnIndex) => (
-                                        <th
-                                          key={`fg-card-column-${columnIndex}`}
-                                          className="px-2 py-2 text-left font-semibold border-b border-gray-100"
-                                        >
-                                          {column || `Columna ${columnIndex + 1}`}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-100">
-                                    {productDetails.feedingGuideTable.rows.map((row, rowIndex) => (
-                                      <tr key={`fg-card-row-${rowIndex}`}>
-                                        {row.values.map((value, columnIndex) => (
-                                          <td
-                                            key={`fg-card-cell-${rowIndex}-${columnIndex}`}
-                                            className="px-2 py-2 text-gray-600 align-top"
-                                          >
-                                            {value || '—'}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                              <p className="mt-1 text-[10px] text-gray-400">
-                                Ajusta según la actividad de tu mascota.
-                              </p>
-                            </div>
-                          )}
-                        </>
+                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-indigo-700 shadow-sm">
+                          <p className="text-[12px] font-semibold mb-2">Información nutricional disponible</p>
+                          <button
+                            type="button"
+                            onClick={() => openDetailsModal(product)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+                          >
+                            <span>Ver detalles completos</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H5m14 0h-4m0 0V8m0 4v4" />
+                            </svg>
+                          </button>
+                        </div>
                       ) : (
-                        <div className="text-xs bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 h-fit">
-                          <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-2">
+                        <div className="text-xs bg-gradient-to-br from-gray-50 via-white to-white border border-gray-100 rounded-2xl p-4 h-fit shadow-sm">
+                          <p className="text-gray-500 uppercase tracking-wide text-[11px] font-semibold mb-3">
                             Información general
                           </p>
-                          <div className="flex flex-wrap gap-2">
+                          <dl className="space-y-2">
                             {fallbackMeta
                               .filter((meta) => Boolean(meta?.value))
                               .map((meta) => (
-                                <span
-                                  key={`${product.id}-${meta.label}`}
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-white text-gray-700 text-[11px] font-medium border border-gray-200"
-                                >
-                                  <span className="mr-1 text-gray-500">{meta.label}:</span>
-                                  <span>{meta.value}</span>
-                                </span>
+                                <div key={`${product.id}-${meta.label}`} className="flex items-center justify-between text-[11px] text-gray-700">
+                                  <dt className="font-semibold text-gray-500">{meta.label}</dt>
+                                  <dd className="text-gray-900">{meta.value}</dd>
+                                </div>
                               ))}
-                            {fallbackMeta.length === 0 && (
-                              <span className="text-[11px] text-gray-400">
-                                Añade análisis o composición para completar esta tarjeta.
-                              </span>
-                            )}
-                          </div>
+                          </dl>
+                          {fallbackMeta.length === 0 && (
+                            <span className="text-[11px] text-gray-400">
+                              Añade análisis o composición para completar esta tarjeta.
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1567,6 +1551,155 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </button>
+          </div>
+        )}
+
+        {selectedProductDetails && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-6">
+            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={closeDetailsModal}></div>
+            <div className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Información del producto</p>
+                  <h3 className="mt-1 text-2xl font-semibold text-gray-900">{selectedProductDetails.product.name}</h3>
+                  <p className="text-sm text-gray-500">{formatCategoryLabel(selectedProductDetails.product.category || activeCategory)}</p>
+                </div>
+                <button
+                  onClick={closeDetailsModal}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  aria-label="Cerrar"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className={`mt-6 grid gap-4 ${user ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Precio</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    ${selectedProductDetails.product.price.toLocaleString('es-CL')}
+                  </p>
+                  {selectedProductDetails.product.barcode && (
+                    <p className="text-xs text-gray-500 mt-1">SKU {selectedProductDetails.product.barcode}</p>
+                  )}
+                </div>
+                {user && (
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Stock</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {selectedProductDetails.product.stock ?? '—'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 space-y-6 text-sm">
+                {selectedProductDetails.details.analysis?.length > 0 && (
+                  <section>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2a4 4 0 014-4h6" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6a2 2 0 012 2v10a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z" />
+                        </svg>
+                      </span>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Análisis garantizado</p>
+                        <h4 className="text-lg font-semibold text-gray-900">Valores nutricionales</h4>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProductDetails.details.analysis.map((row, idx) => (
+                        <span
+                          key={`${selectedProductDetails.cardKey}-analysis-${idx}`}
+                          className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-[12px] font-medium text-indigo-700"
+                        >
+                          {row.label && <span className="mr-1">{row.label}:</span>}
+                          <span>{row.value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {selectedProductDetails.details.composition?.trim() && (
+                  <section>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Composición</p>
+                    <div className="mt-2 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4">
+                      <p
+                        className={`text-sm leading-relaxed text-gray-600 whitespace-pre-line ${
+                          expandedCompositions[selectedProductDetails.cardKey] ? '' : 'line-clamp-5'
+                        }`}
+                      >
+                        {selectedProductDetails.details.composition}
+                      </p>
+                      {isCompositionLong(selectedProductDetails.details.composition) && (
+                        <button
+                          type="button"
+                          onClick={() => toggleCompositionExpand(selectedProductDetails.cardKey)}
+                          className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                        >
+                          {expandedCompositions[selectedProductDetails.cardKey] ? 'Mostrar menos' : 'Ver más'}
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
+                  <section>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Guía de ración diaria</p>
+                    <div className="mt-2 overflow-x-auto rounded-2xl border border-gray-100 bg-white">
+                      <table className="min-w-full text-[12px] text-gray-600">
+                        <thead className="bg-gray-50 text-gray-500">
+                          <tr>
+                            {selectedProductDetails.details.feedingGuideTable.columns.map((column, columnIndex) => (
+                              <th
+                                key={`modal-fg-column-${columnIndex}`}
+                                className="px-3 py-2 text-left text-sm font-semibold border-b border-gray-100"
+                              >
+                                {column || `Columna ${columnIndex + 1}`}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {selectedProductDetails.details.feedingGuideTable.rows.map((row, rowIndex) => (
+                            <tr key={`modal-fg-row-${rowIndex}`}>
+                              {row.values.map((value, columnIndex) => (
+                                <td key={`modal-fg-cell-${rowIndex}-${columnIndex}`} className="px-3 py-2 align-top">
+                                  {value || '—'}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+
+                {!selectedProductDetails.details.analysis?.length &&
+                  !selectedProductDetails.details.composition?.trim() &&
+                  !hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
+                    <p className="text-sm text-gray-500">
+                      No se encontró información nutricional para este producto. Agrega detalles desde la edición del catálogo.
+                    </p>
+                  )}
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  type="button"
+                  onClick={closeDetailsModal}
+                  className="inline-flex items-center rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
