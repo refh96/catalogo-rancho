@@ -90,6 +90,57 @@ const cloneFeedingGuideTable = (table) => {
 
 const getProductCardKey = (product) => product?.id ?? product?.barcode ?? product?.name;
 
+const getProductAnchorId = (product) => {
+  const rawKey =
+    getProductCardKey(product) ??
+    product?.name ??
+    product?.barcode ??
+    product?.id ??
+    'producto';
+
+  const sanitizedKey = rawKey
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '');
+
+  if (!sanitizedKey) {
+    return 'product-card';
+  }
+
+  return `product-card-${sanitizedKey}`;
+};
+
+const SOCIAL_SHARE_OPTIONS = [
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    accentClass: 'text-green-600 hover:bg-green-50 dark:text-green-300 dark:hover:bg-green-500/10',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+        <path d="M12 2A10 10 0 002.05 14.32 1 1 0 003 15h1v4a1 1 0 001.6.8l2.77-2.08A9.94 9.94 0 0012 22a10 10 0 000-20zm5.53 14.47l-.22.62a.8.8 0 01-.76.54 7 7 0 01-6.31-3.87 6.6 6.6 0 01-.71-2.84.8.8 0 01.55-.77l.62-.21a.81.81 0 01.9.33l1 1.53a.8.8 0 01.08.73 1.39 1.39 0 00.09 1s.49.86 1.12 1.37c.61.48 1.31.71 1.31.71a.8.8 0 01.55.53l.47 1.48a.79.79 0 01-.02.64z" />
+      </svg>
+    ),
+    buildUrl: (shareData) => {
+      const message = shareData?.message || [shareData?.text, shareData?.url].filter(Boolean).join('\n');
+      return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    }
+  },
+  {
+    id: 'facebook',
+    label: 'Facebook',
+    accentClass: 'text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-500/10',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+        <path d="M13 22v-7h3l.5-3H13V9.5A1.5 1.5 0 0114.5 8H17V5h-2.5A4.5 4.5 0 0010 9.5V12H7v3h3v7z" />
+      </svg>
+    ),
+    buildUrl: (shareData) =>
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}&quote=${encodeURIComponent(shareData.text)}`
+  },
+];
+
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
@@ -135,6 +186,213 @@ export default function Home() {
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   const searchInputRef = useRef(null);
   const voiceInputTargetRef = useRef('search');
+  const hasAppliedSharedFiltersRef = useRef(false);
+  const [shareMenuContext, setShareMenuContext] = useState(null);
+  const [supportsNativeShare, setSupportsNativeShare] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      setSupportsNativeShare(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!shareMenuContext || typeof document === 'undefined') return;
+
+    const handleClickOutside = (event) => {
+      if (typeof Element !== 'undefined' && event.target instanceof Element) {
+        if (
+          event.target.closest('[data-share-menu]') ||
+          event.target.closest('[data-share-trigger]')
+        ) {
+          return;
+        }
+      }
+      setShareMenuContext(null);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShareMenuContext(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [shareMenuContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || hasAppliedSharedFiltersRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const sharedCategory = params.get('categoria');
+    const sharedSearch =
+      params.get('buscar') ?? params.get('productoNombre') ?? params.get('producto');
+
+    if (!sharedCategory && !sharedSearch) return;
+
+    if (sharedCategory) {
+      setActiveCategory(sharedCategory);
+    }
+
+    if (sharedSearch) {
+      setSearchTerm(sharedSearch);
+      if (searchInputRef.current) {
+        searchInputRef.current.value = sharedSearch;
+      }
+    }
+
+    hasAppliedSharedFiltersRef.current = true;
+  }, []);
+
+  const buildProductSharePayload = useCallback(
+    (product) => {
+      if (!product || typeof window === 'undefined' || typeof URL === 'undefined') {
+        return null;
+      }
+
+      const shareUrl = new URL(window.location.origin + window.location.pathname);
+      const anchorId = getProductAnchorId(product);
+      if (anchorId) {
+        shareUrl.hash = anchorId;
+      }
+
+      const categoryForShare = product.category || activeCategory || 'otros';
+      if (categoryForShare) {
+        shareUrl.searchParams.set('categoria', categoryForShare);
+      }
+
+      if (product.id) {
+        shareUrl.searchParams.set('productoId', product.id);
+      } else if (product.barcode) {
+        shareUrl.searchParams.set('barcode', product.barcode);
+      } else if (anchorId) {
+        shareUrl.searchParams.set('producto', anchorId.replace('product-card-', ''));
+      }
+
+      if (product.name) {
+        shareUrl.searchParams.set('buscar', product.name);
+        shareUrl.searchParams.set('productoNombre', product.name);
+      }
+
+      const hasPrice = typeof product.price === 'number' && !Number.isNaN(product.price);
+      const priceSnippet = hasPrice ? ` por $${Number(product.price).toLocaleString('es-CL')}` : '';
+      const shareTextBase = product.name
+        ? `${product.name} • Rancho Mascotas${priceSnippet}`
+        : `Rancho Mascotas${priceSnippet}`;
+      const shareMessage = `${shareTextBase}\n${shareUrl.toString()}`;
+
+      return {
+        title: product.name || 'Producto del catálogo',
+        text: shareTextBase,
+        url: shareUrl.toString(),
+        message: shareMessage
+      };
+    },
+    [activeCategory]
+  );
+
+  const handleCopyShareLink = async (product, shareDataOverride) => {
+    const shareData = shareDataOverride ?? buildProductSharePayload(product);
+
+    if (!shareData?.url) {
+      showAlert('No se pudo generar el enlace para compartir.', 'error');
+      return;
+    }
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareData.url);
+      } else if (typeof document !== 'undefined') {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareData.url;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } else {
+        throw new Error('Clipboard API no disponible');
+      }
+      showAlert('Enlace copiado para compartir', 'success');
+      setShareMenuContext(null);
+    } catch (error) {
+      console.error('Error copiando enlace al portapapeles:', error);
+      showAlert('No se pudo copiar el enlace automáticamente.', 'error');
+    }
+  };
+
+  const handleNativeShare = async (product, shareDataOverride) => {
+    const shareData = shareDataOverride ?? buildProductSharePayload(product);
+
+    if (!shareData?.url) {
+      showAlert('No se pudo generar el enlace para compartir.', 'error');
+      return;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setShareMenuContext(null);
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          return;
+        }
+        console.error('Error usando la API de compartir:', error);
+      }
+    }
+
+    await handleCopyShareLink(product, shareData);
+  };
+
+  const toggleShareMenuForProduct = (product) => {
+    setShareMenuContext((current) => {
+      const cardKey = getProductCardKey(product);
+      if (current?.cardKey === cardKey) {
+        return null;
+      }
+
+      const shareData = buildProductSharePayload(product);
+      if (!shareData?.url) {
+        showAlert('No se pudo generar el enlace para compartir.', 'error');
+        return current;
+      }
+
+      return {
+        cardKey,
+        product,
+        shareData
+      };
+    });
+  };
+
+  const handleShareOptionClick = (option, shareData) => {
+    if (!option || typeof window === 'undefined') return;
+    if (!shareData?.url) {
+      showAlert('No se pudo generar el enlace para compartir.', 'error');
+      return;
+    }
+
+    try {
+      if (option.mode === 'copy') {
+        handleCopyShareLink(null, shareData);
+      } else {
+        const url = option.buildUrl(shareData);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      setShareMenuContext(null);
+    } catch (error) {
+      console.error('Error abriendo opción de compartir:', error);
+      showAlert('No se pudo abrir la opción seleccionada.', 'error');
+    }
+  };
 
   const normalizeDetails = (details) => {
     const base = createEmptyDetails();
@@ -1346,9 +1604,12 @@ export default function Home() {
                 ].filter(Boolean);
                 const isInCart = Array.isArray(cart) && cart.some((item) => item.id === product.id);
 
+                const isShareMenuOpen = shareMenuContext?.cardKey === productCardKey;
+
                 return (
                 <div
                   key={productCardKey || product.id}
+                  id={getProductAnchorId(product)}
                   className={`group rounded-2xl overflow-hidden flex flex-col transition-all duration-300 border ${
                     isInCart
                       ? 'bg-orange-50/90 border-orange-400 shadow-xl shadow-orange-100 dark:bg-orange-900/30 dark:border-orange-600 dark:shadow-orange-900/40'
@@ -1390,11 +1651,86 @@ export default function Home() {
                           {product.name}
                         </p>
                       </div>
-                      {product.brand && (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-700 whitespace-nowrap">
-                          {product.brand}
-                        </span>
-                      )}
+                      <div className="relative flex items-start gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleShareMenuForProduct(product)}
+                          data-share-trigger
+                          className={`p-2 rounded-full border text-gray-500 transition-colors dark:text-gray-300 ${
+                            isShareMenuOpen
+                              ? 'border-indigo-500 bg-indigo-50 text-indigo-600 dark:border-indigo-400 dark:bg-indigo-500/20'
+                              : 'border-gray-200 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-600 dark:hover:bg-slate-700'
+                          }`}
+                          title="Compartir producto"
+                          aria-label="Compartir producto"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-black">
+                            <path d="M18 7a3 3 0 10-2.686-4.24l-6.3 3.51a3 3 0 100 4.46l6.3 3.51a3 3 0 102.012-1.932l-6.207-3.46a3.02 3.02 0 000-.698l6.207-3.46A2.99 2.99 0 0018 7zM6 9a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm12 8.5a1.5 1.5 0 11-1.5 1.5 1.5 1.5 0 011.5-1.5zm0-14a1.5 1.5 0 11-1.5 1.5A1.5 1.5 0 0118 3.5z" />
+                          </svg>
+                        </button>
+                        {isShareMenuOpen && shareMenuContext?.shareData && (
+                          <div
+                            data-share-menu
+                            className="absolute top-10 right-0 z-30 w-56 rounded-2xl border border-gray-200 bg-white p-3 text-sm shadow-2xl dark:border-slate-600 dark:bg-slate-800"
+                          >
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300 mb-2">
+                              Compartir este producto
+                            </p>
+                            <div className="space-y-1">
+                              {supportsNativeShare && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleNativeShare(product, shareMenuContext.shareData)}
+                                  className="flex w-full items-center justify-between rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                                >
+                                  Compartir en apps
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10 2a1 1 0 011 1v8a1 1 0 11-2 0V3a1 1 0 011-1z" />
+                                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                                    <path d="M4 13a1 1 0 100 2h12a1 1 0 100-2H4z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {SOCIAL_SHARE_OPTIONS.map((option) => {
+                                const isCopyMode = option.mode === 'copy';
+                                return (
+                                  <button
+                                    key={`${option.id}-${productCardKey}`}
+                                    type="button"
+                                    onClick={() =>
+                                      isCopyMode
+                                        ? handleCopyShareLink(product, shareMenuContext.shareData)
+                                        : handleShareOptionClick(option, shareMenuContext.shareData)
+                                    }
+                                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${option.accentClass}`}
+                                  >
+                                    <span>{option.label}</span>
+                                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-white/80 p-1 text-gray-600 dark:bg-white/10 dark:text-gray-200">
+                                      {option.icon}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                              <button
+                                type="button"
+                                onClick={() => handleCopyShareLink(product, shareMenuContext.shareData)}
+                                className="flex w-full items-center justify-between rounded-xl border border-dashed border-gray-300 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-700"
+                              >
+                                Copiar enlace
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {product.brand && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-700 whitespace-nowrap">
+                            {product.brand}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="mt-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-3 text-white shadow-inner">
                       <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-100/80">Precio</p>
