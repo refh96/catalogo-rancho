@@ -136,8 +136,10 @@ const SOCIAL_SHARE_OPTIONS = [
         <path d="M13 22v-7h3l.5-3H13V9.5A1.5 1.5 0 0114.5 8H17V5h-2.5A4.5 4.5 0 0010 9.5V12H7v3h3v7z" />
       </svg>
     ),
-    buildUrl: (shareData) =>
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}&quote=${encodeURIComponent(shareData.text)}`
+    buildUrl: (shareData) => {
+      const quote = shareData?.message || [shareData?.text, shareData?.url].filter(Boolean).join('\n');
+      return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}&quote=${encodeURIComponent(quote)}`;
+    }
   },
 ];
 
