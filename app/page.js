@@ -189,6 +189,7 @@ export default function Home() {
   const searchInputRef = useRef(null);
   const voiceInputTargetRef = useRef('search');
   const hasAppliedSharedFiltersRef = useRef(false);
+  const sharedLinkParamsRef = useRef(null);
   const [shareMenuContext, setShareMenuContext] = useState(null);
   const [supportsNativeShare, setSupportsNativeShare] = useState(false);
 
@@ -234,8 +235,18 @@ export default function Home() {
     const sharedCategory = params.get('categoria');
     const sharedSearch =
       params.get('buscar') ?? params.get('productoNombre') ?? params.get('producto');
+    const sharedProductId = params.get('productoId');
+    const sharedBarcode = params.get('barcode');
 
-    if (!sharedCategory && !sharedSearch) return;
+    if (!sharedCategory && !sharedSearch && !sharedProductId && !sharedBarcode) return;
+
+    sharedLinkParamsRef.current = {
+      category: sharedCategory,
+      search: sharedSearch,
+      productId: sharedProductId,
+      barcode: sharedBarcode,
+      appliedProductDetails: false
+    };
 
     if (sharedCategory) {
       setActiveCategory(sharedCategory);
