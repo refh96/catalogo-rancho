@@ -29,10 +29,41 @@ const createEmptyFeedingGuideTable = () => ({
 const MIN_FEEDING_GUIDE_COLUMNS = 2;
 const MIN_FEEDING_GUIDE_ROWS = 1;
 
+const createEmptyAccessorySpecs = () => ({
+  type: '',
+  dimensions: '',
+  color: '',
+  material: '',
+  recommendedPet: '',
+  highlights: ''
+});
+
+const createEmptyPharmacyInfo = () => ({
+  productType: '',
+  indications: '',
+  usage: '',
+  contraindications: ''
+});
+
 const createEmptyDetails = () => ({
   composition: '',
   analysis: [],
-  feedingGuideTable: createEmptyFeedingGuideTable()
+  feedingGuideTable: createEmptyFeedingGuideTable(),
+  accessorySpecs: createEmptyAccessorySpecs(),
+  pharmacyInfo: createEmptyPharmacyInfo()
+});
+
+const PRODUCT_FORM_CATEGORIES = ['perros', 'gatos', 'mascotasPequeñas', 'accesorios', 'farmacia'];
+const PHARMACY_PRODUCT_TYPES = ['Pipeta', 'Comprimido', 'Jarabe', 'Collar', 'Spray', 'Gotas', 'Suplemento', 'Otro'];
+
+const createEmptyFormData = (category = 'perros') => ({
+  name: '',
+  price: '',
+  category,
+  image: '',
+  stock: '',
+  barcode: '',
+  details: createEmptyDetails()
 });
 
 const normalizeFeedingGuideTable = (table) => {
@@ -73,6 +104,16 @@ const hasFeedingGuideTableData = (table) => {
   return Boolean(hasHeader || hasCells);
 };
 
+const hasAccessorySpecsData = (specs) => {
+  if (!specs || typeof specs !== 'object') return false;
+  return Object.values(specs).some((value) => typeof value === 'string' && value.trim());
+};
+
+const hasPharmacyInfoData = (info) => {
+  if (!info || typeof info !== 'object') return false;
+  return Object.values(info).some((value) => typeof value === 'string' && value.trim());
+};
+
 const cloneFeedingGuideTable = (table) => {
   const columns = Array.isArray(table?.columns) ? [...table.columns] : [];
   const rows = Array.isArray(table?.rows)
@@ -85,6 +126,32 @@ const cloneFeedingGuideTable = (table) => {
   return {
     columns,
     rows
+  };
+};
+
+const normalizeAccessorySpecs = (specs) => {
+  const base = createEmptyAccessorySpecs();
+  if (!specs || typeof specs !== 'object') return base;
+  return {
+    ...base,
+    type: specs.type || '',
+    dimensions: specs.dimensions || '',
+    color: specs.color || '',
+    material: specs.material || '',
+    recommendedPet: specs.recommendedPet || '',
+    highlights: specs.highlights || ''
+  };
+};
+
+const normalizePharmacyInfo = (info) => {
+  const base = createEmptyPharmacyInfo();
+  if (!info || typeof info !== 'object') return base;
+  return {
+    ...base,
+    productType: info.productType || '',
+    indications: info.indications || '',
+    usage: info.usage || '',
+    contraindications: info.contraindications || ''
   };
 };
 
@@ -190,15 +257,7 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [headerLogoFailed, setHeaderLogoFailed] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    category: 'perros',
-    image: '',
-    stock: '',
-    barcode: '',
-    details: createEmptyDetails()
-  });
+  const [formData, setFormData] = useState(() => createEmptyFormData('perros'));
   const [loginData, setLoginData] = useState({
     username: '',
     password: ''
@@ -388,6 +447,40 @@ export default function Home() {
     });
   };
 
+  const handleAccessorySpecChange = (field, value) => {
+    setFormData((prev) => {
+      const prevDetails = prev.details || createEmptyDetails();
+      const prevSpecs = normalizeAccessorySpecs(prevDetails.accessorySpecs);
+      return {
+        ...prev,
+        details: {
+          ...prevDetails,
+          accessorySpecs: {
+            ...prevSpecs,
+            [field]: value
+          }
+        }
+      };
+    });
+  };
+
+  const handlePharmacyInfoChange = (field, value) => {
+    setFormData((prev) => {
+      const prevDetails = prev.details || createEmptyDetails();
+      const prevPharmacyInfo = normalizePharmacyInfo(prevDetails.pharmacyInfo);
+      return {
+        ...prev,
+        details: {
+          ...prevDetails,
+          pharmacyInfo: {
+            ...prevPharmacyInfo,
+            [field]: value
+          }
+        }
+      };
+    });
+  };
+
   const handleScrollToTop = () => {
     if (typeof window === 'undefined') return;
     window.scrollTo({
@@ -474,7 +567,9 @@ export default function Home() {
             value: row?.value || ''
           }))
         : [],
-      feedingGuideTable: normalizeFeedingGuideTable(details.feedingGuideTable) || base.feedingGuideTable
+      feedingGuideTable: normalizeFeedingGuideTable(details.feedingGuideTable) || base.feedingGuideTable,
+      accessorySpecs: normalizeAccessorySpecs(details.accessorySpecs),
+      pharmacyInfo: normalizePharmacyInfo(details.pharmacyInfo)
     };
   };
 
@@ -506,6 +601,19 @@ export default function Home() {
     () => normalizeFeedingGuideTable(formData.details?.feedingGuideTable) || createEmptyFeedingGuideTable(),
     [formData.details?.feedingGuideTable]
   );
+
+  const accessorySpecs = useMemo(
+    () => normalizeAccessorySpecs(formData.details?.accessorySpecs),
+    [formData.details?.accessorySpecs]
+  );
+
+  const pharmacyInfo = useMemo(
+    () => normalizePharmacyInfo(formData.details?.pharmacyInfo),
+    [formData.details?.pharmacyInfo]
+  );
+
+  const isAccessoryCategory = formData.category === 'accesorios';
+  const isPharmacyCategory = formData.category === 'farmacia';
 
   const parseAnalysisText = (text) => {
     if (!text) return [];
@@ -1656,6 +1764,14 @@ export default function Home() {
                 const showReadMore = hasComposition && isCompositionLong(productDetails.composition);
                 const formattedCategory = formatCategoryLabel(product.category || activeCategory);
                 const showSku = Boolean(user);
+                const cardCategory = product.category || activeCategory;
+                const isAccessoryCard = cardCategory === 'accesorios';
+                const isPharmacyCard = cardCategory === 'farmacia';
+                const detailCardLabel = isAccessoryCard
+                  ? 'Descripción del producto'
+                  : isPharmacyCard
+                  ? 'Información del medicamento'
+                  : 'Información nutricional disponible';
                 const fallbackMeta = [
                   {
                     label: 'Categoría',
@@ -1854,7 +1970,7 @@ export default function Home() {
                     <div className="mt-5 flex-1">
                       {hasDetails ? (
                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-100 shadow-sm">
-                          <p className="text-[12px] font-semibold mb-2">Información nutricional disponible</p>
+                          <p className="text-[12px] font-semibold mb-2">{detailCardLabel}</p>
                           <button
                             type="button"
                             onClick={() => openDetailsModal(product)}
@@ -1938,15 +2054,7 @@ export default function Home() {
             <button 
               onClick={() => {
                 setEditingProduct(null);
-                setFormData({
-                  name: '',
-                  price: '',
-                  category: 'perros',
-                  image: '',
-                  stock: '',
-                  barcode: '',
-                  details: createEmptyDetails()
-                });
+                setFormData(createEmptyFormData(activeCategory));
                 setShowAddProduct(true);
               }}
               className="p-3 sm:p-4 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
@@ -2000,98 +2108,181 @@ export default function Home() {
               </div>
 
               <div className="mt-6 space-y-6 text-sm">
-                {selectedProductDetails.details.analysis?.length > 0 && (
+                {selectedProductDetails.product.category === 'accesorios' ? (
+                  // Sección para accesorios
                   <section>
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2a4 4 0 014-4h6" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6a2 2 0 012 2v10a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z" />
-                        </svg>
-                      </span>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Análisis garantizado</p>
-                        <h4 className="text-lg font-semibold text-gray-900">Valores nutricionales</h4>
+                    <div className="mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Especificaciones del accesorio</h4>
+                      <div className="space-y-3">
+                        {selectedProductDetails.details.accessorySpecs?.type && (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-gray-700 mb-1 border-b border-gray-100 pb-1">TIPO</span>
+                            <p className="text-gray-700 mt-1">{selectedProductDetails.details.accessorySpecs.type}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.accessorySpecs?.dimensions && (
+                          <div className="pt-3">
+                            <span className="text-sm font-semibold text-gray-700 mb-1 border-b border-gray-100 pb-1 block">MEDIDAS</span>
+                            <p className="text-gray-700 mt-1">{selectedProductDetails.details.accessorySpecs.dimensions}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.accessorySpecs?.color && (
+                          <div className="pt-3">
+                            <span className="text-sm font-semibold text-gray-700 mb-1 border-b border-gray-100 pb-1 block">COLOR</span>
+                            <p className="text-gray-700 mt-1">{selectedProductDetails.details.accessorySpecs.color}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.accessorySpecs?.material && (
+                          <div className="pt-3">
+                            <span className="text-sm font-semibold text-gray-700 mb-1 border-b border-gray-100 pb-1 block">MATERIAL</span>
+                            <p className="text-gray-700 mt-1">{selectedProductDetails.details.accessorySpecs.material}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.accessorySpecs?.recommendedPet && (
+                          <div className="pt-3">
+                            <span className="text-sm font-semibold text-gray-700 mb-1 border-b border-gray-100 pb-1 block">MASCOTA RECOMENDADA</span>
+                            <p className="text-gray-700 mt-1">{selectedProductDetails.details.accessorySpecs.recommendedPet}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.accessorySpecs?.highlights && (
+                          <div className="pt-3">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-1">CARACTERÍSTICAS DESTACADAS</p>
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-line">{selectedProductDetails.details.accessorySpecs.highlights}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProductDetails.details.analysis.map((row, idx) => (
-                        <span
-                          key={`${selectedProductDetails.cardKey}-analysis-${idx}`}
-                          className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-[12px] font-medium text-indigo-700"
-                        >
-                          {row.label && <span className="mr-1">{row.label}:</span>}
-                          <span>{row.value}</span>
-                        </span>
-                      ))}
+                  </section>
+                ) : selectedProductDetails.product.category === 'farmacia' ? (
+                  // Sección para farmacia
+                  <section>
+                    <div className="mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Ficha del medicamento</h4>
+                      <div className="space-y-3">
+                        {selectedProductDetails.details.pharmacyInfo?.productType && (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-gray-700 mb-1 border-b border-gray-100 pb-1">TIPO DE PRODUCTO</span>
+                            <p className="text-gray-700 mt-1">{selectedProductDetails.details.pharmacyInfo.productType}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.pharmacyInfo?.indications && (
+                          <div className="pt-3">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-1">INDICACIONES</p>
+                            <p className="text-gray-700 leading-relaxed">{selectedProductDetails.details.pharmacyInfo.indications}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.pharmacyInfo?.usage && (
+                          <div className="pt-4">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-1">MODO DE USO / ADMINISTRACIÓN</p>
+                            <p className="text-gray-700 leading-relaxed">{selectedProductDetails.details.pharmacyInfo.usage}</p>
+                          </div>
+                        )}
+                        {selectedProductDetails.details.pharmacyInfo?.contraindications && (
+                          <div className="pt-4">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-1">CONTRAINDICACIONES</p>
+                            <p className="text-gray-700 leading-relaxed">{selectedProductDetails.details.pharmacyInfo.contraindications}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </section>
-                )}
-
-                {selectedProductDetails.details.composition?.trim() && (
-                  <section>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Composición</p>
-                    <div className="mt-2 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4">
-                      <p
-                        className={`text-sm leading-relaxed text-gray-600 whitespace-pre-line ${
-                          expandedCompositions[selectedProductDetails.cardKey] ? '' : 'line-clamp-5'
-                        }`}
-                      >
-                        {selectedProductDetails.details.composition}
-                      </p>
-                      {isCompositionLong(selectedProductDetails.details.composition) && (
-                        <button
-                          type="button"
-                          onClick={() => toggleCompositionExpand(selectedProductDetails.cardKey)}
-                          className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        >
-                          {expandedCompositions[selectedProductDetails.cardKey] ? 'Mostrar menos' : 'Ver más'}
-                        </button>
-                      )}
-                    </div>
-                  </section>
-                )}
-
-                {hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
-                  <section>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Guía de ración diaria</p>
-                    <div className="mt-2 overflow-x-auto rounded-2xl border border-gray-100 bg-white">
-                      <table className="min-w-full text-[12px] text-gray-600">
-                        <thead className="bg-gray-50 text-gray-500">
-                          <tr>
-                            {selectedProductDetails.details.feedingGuideTable.columns.map((column, columnIndex) => (
-                              <th
-                                key={`modal-fg-column-${columnIndex}`}
-                                className="px-3 py-2 text-left text-sm font-semibold border-b border-gray-100"
-                              >
-                                {column || `Columna ${columnIndex + 1}`}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {selectedProductDetails.details.feedingGuideTable.rows.map((row, rowIndex) => (
-                            <tr key={`modal-fg-row-${rowIndex}`}>
-                              {row.values.map((value, columnIndex) => (
-                                <td key={`modal-fg-cell-${rowIndex}-${columnIndex}`} className="px-3 py-2 align-top">
-                                  {value || '—'}
-                                </td>
-                              ))}
-                            </tr>
+                ) : (
+                  // Sección para otros productos (composición, análisis, guía de alimentación)
+                  <>
+                    {selectedProductDetails.details.analysis?.length > 0 && (
+                      <section>
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2a4 4 0 014-4h6" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6a2 2 0 012 2v10a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z" />
+                            </svg>
+                          </span>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Análisis garantizado</p>
+                            <h4 className="text-lg font-semibold text-gray-900">Valores nutricionales</h4>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedProductDetails.details.analysis.map((row, idx) => (
+                            <span
+                              key={`${selectedProductDetails.cardKey}-analysis-${idx}`}
+                              className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-[12px] font-medium text-indigo-700"
+                            >
+                              {row.label && <span className="mr-1">{row.label}:</span>}
+                              <span>{row.value}</span>
+                            </span>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
+                        </div>
+                      </section>
+                    )}
 
-                {!selectedProductDetails.details.analysis?.length &&
-                  !selectedProductDetails.details.composition?.trim() &&
-                  !hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
-                    <p className="text-sm text-gray-500">
-                      No se encontró información nutricional para este producto. Agrega detalles desde la edición del catálogo.
-                    </p>
-                  )}
+                    {selectedProductDetails.details.composition?.trim() && (
+                      <section>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Composición</p>
+                        <div className="mt-2 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4">
+                          <p
+                            className={`text-sm leading-relaxed text-gray-600 whitespace-pre-line ${
+                              expandedCompositions[selectedProductDetails.cardKey] ? '' : 'line-clamp-5'
+                            }`}
+                          >
+                            {selectedProductDetails.details.composition}
+                          </p>
+                          {isCompositionLong(selectedProductDetails.details.composition) && (
+                            <button
+                              type="button"
+                              onClick={() => toggleCompositionExpand(selectedProductDetails.cardKey)}
+                              className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                            >
+                              {expandedCompositions[selectedProductDetails.cardKey] ? 'Mostrar menos' : 'Ver más'}
+                            </button>
+                          )}
+                        </div>
+                      </section>
+                    )}
+
+                    {hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
+                      <section>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Guía de ración diaria</p>
+                        <div className="mt-2 overflow-x-auto rounded-2xl border border-gray-100 bg-white">
+                          <table className="min-w-full text-[12px] text-gray-600">
+                            <thead className="bg-gray-50 text-gray-500">
+                              <tr>
+                                {selectedProductDetails.details.feedingGuideTable.columns.map((column, columnIndex) => (
+                                  <th
+                                    key={`modal-fg-column-${columnIndex}`}
+                                    className="px-3 py-2 text-left text-sm font-semibold border-b border-gray-100"
+                                  >
+                                    {column || `Columna ${columnIndex + 1}`}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {selectedProductDetails.details.feedingGuideTable.rows.map((row, rowIndex) => (
+                                <tr key={`modal-fg-row-${rowIndex}`}>
+                                  {row.values.map((value, columnIndex) => (
+                                    <td key={`modal-fg-cell-${rowIndex}-${columnIndex}`} className="px-3 py-2 align-top">
+                                      {value || '—'}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    )}
+
+                    {!selectedProductDetails.details.analysis?.length &&
+                      !selectedProductDetails.details.composition?.trim() &&
+                      !hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
+                        <p className="text-sm text-gray-500">
+                          No se encontró información disponible para este producto.
+                        </p>
+                      )}
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex justify-end">
@@ -2292,212 +2483,344 @@ export default function Home() {
                   )}
                 </div>
                 
-                <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs sm:text-sm font-medium text-gray-700">
-                        Composición / ingredientes
-                      </label>
-                      {browserSupportsSpeechRecognition && (
-                        <button
-                          type="button"
-                          onClick={() => toggleVoiceRecognition('composition')}
-                          className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 ${
-                            isListening && voiceInputTargetRef.current === 'composition'
-                              ? 'bg-red-100 text-red-600'
-                              : 'text-indigo-600 hover:text-indigo-800'
-                          }`}
-                          aria-label="Dictar composición por voz"
-                          title="Dictar composición por voz"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v3m0 0H9m3 0h3M9 9V5a3 3 0 016 0v4a3 3 0 11-6 0z"
-                            />
-                          </svg>
-                          <span>Dictar</span>
-                        </button>
-                      )}
+                {isAccessoryCategory ? (
+                  <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs sm:text-sm font-semibold text-gray-900">Especificaciones del accesorio</p>
+                        <p className="text-[11px] text-gray-500">
+                          Describe materiales, medidas y detalles útiles para los clientes.
+                        </p>
+                      </div>
                     </div>
-                    <textarea
-                      value={formData.details?.composition || ''}
-                      onChange={(e) => handleDetailsChange('composition', e.target.value)}
-                      className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Ej: Harina de carne y hueso, arroz, maíz..."
-                    />
-                    <p className="mt-1 text-[11px] text-gray-500">
-                      Escribe o pega la lista de ingredientes tal como aparece en el saco.
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                        <input
+                          type="text"
+                          value={accessorySpecs.type}
+                          onChange={(e) => handleAccessorySpecChange('type', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Ej: Correa retráctil, rascador, rompecabezas"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Medidas / dimensiones</label>
+                        <input
+                          type="text"
+                          value={accessorySpecs.dimensions}
+                          onChange={(e) => handleAccessorySpecChange('dimensions', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Ej: 45 cm x 3 cm · Talla M"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Color principal</label>
+                        <input
+                          type="text"
+                          value={accessorySpecs.color}
+                          onChange={(e) => handleAccessorySpecChange('color', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Ej: Verde lima"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Material</label>
+                        <input
+                          type="text"
+                          value={accessorySpecs.material}
+                          onChange={(e) => handleAccessorySpecChange('material', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Ej: Nylon reforzado, silicona grado alimenticio"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Mascota recomendada</label>
+                        <input
+                          type="text"
+                          value={accessorySpecs.recommendedPet}
+                          onChange={(e) => handleAccessorySpecChange('recommendedPet', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Ej: Perros medianos · Gatos adultos"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Características destacadas</label>
+                      <textarea
+                        value={accessorySpecs.highlights}
+                        onChange={(e) => handleAccessorySpecChange('highlights', e.target.value)}
+                        className="w-full min-h-[90px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Incluye detalles como usos, beneficios, accesorios incluidos o modos de juego."
+                      />
+                    </div>
+                  </div>
+                ) : isPharmacyCategory ? (
+                  <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs sm:text-sm font-semibold text-gray-900">Ficha del medicamento</p>
+                        <p className="text-[11px] text-gray-500">
+                          Registra la información clave para orientar a los tutores sobre su uso responsable.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tipo de producto</label>
+                        <select
+                          value={pharmacyInfo.productType}
+                          onChange={(e) => handlePharmacyInfoChange('productType', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          <option value="">Selecciona una opción</option>
+                          {PHARMACY_PRODUCT_TYPES.map((type) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Indicaciones</label>
+                        <textarea
+                          value={pharmacyInfo.indications}
+                          onChange={(e) => handlePharmacyInfoChange('indications', e.target.value)}
+                          className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Describe para qué casos se recomienda (parasiticida, antiinflamatorio, antipulgas...)."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Modo de uso / administración</label>
+                        <textarea
+                          value={pharmacyInfo.usage}
+                          onChange={(e) => handlePharmacyInfoChange('usage', e.target.value)}
+                          className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Incluye dosis orientativa, frecuencia, vía de administración o pasos relevantes."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Contraindicaciones y advertencias</label>
+                        <textarea
+                          value={pharmacyInfo.contraindications}
+                          onChange={(e) => handlePharmacyInfoChange('contraindications', e.target.value)}
+                          className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          placeholder="Ej: No usar en hembras gestantes o lactantes, animales menores a 3 meses, etc."
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Recuerda siempre recomendar que los clientes consulten con su veterinario para indicaciones específicas.
                     </p>
                   </div>
-
-                  <div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                      <label className="text-xs sm:text-sm font-medium text-gray-700">
-                        Análisis garantizado
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={addAnalysisRow}
-                          className="px-2 py-1 rounded-md border border-gray-300 text-[11px] sm:text-xs bg-white hover:bg-gray-100"
-                        >
-                          + Añadir fila
-                        </button>
+                ) : (
+                  <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs sm:text-sm font-medium text-gray-700">
+                          Composición / ingredientes
+                        </label>
+                        {browserSupportsSpeechRecognition && (
+                          <button
+                            type="button"
+                            onClick={() => toggleVoiceRecognition('composition')}
+                            className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 ${
+                              isListening && voiceInputTargetRef.current === 'composition'
+                                ? 'bg-red-100 text-red-600'
+                                : 'text-indigo-600 hover:text-indigo-800'
+                            }`}
+                            aria-label="Dictar composición por voz"
+                            title="Dictar composición por voz"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v3m0 0H9m3 0h3M9 9V5a3 3 0 016 0v4a3 3 0 11-6 0z"
+                              />
+                            </svg>
+                            <span>Dictar</span>
+                          </button>
+                        )}
                       </div>
-                    </div>
-                    {analysisRows.length === 0 && (
-                      <p className="text-[11px] text-gray-500 mb-2">
-                        Agrega filas para registrar proteína, grasa, fibra, humedad, calorías, etc.
+                      <textarea
+                        value={formData.details?.composition || ''}
+                        onChange={(e) => handleDetailsChange('composition', e.target.value)}
+                        className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Ej: Harina de carne y hueso, arroz, maíz..."
+                      />
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Escribe o pega la lista de ingredientes tal como aparece en el saco.
                       </p>
-                    )}
-                    <div className="space-y-2">
-                      {analysisRows.map((row, index) => (
-                        <div key={index} className="grid grid-cols-5 gap-2">
-                          <input
-                            type="text"
-                            value={row.label}
-                            onChange={(e) => handleAnalysisRowChange(index, 'label', e.target.value)}
-                            className="col-span-3 px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Nutriente"
-                          />
-                          <input
-                            type="text"
-                            value={row.value}
-                            onChange={(e) => handleAnalysisRowChange(index, 'value', e.target.value)}
-                            className="col-span-2 px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Valor"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeAnalysisRow(index)}
-                            className="text-xs text-red-500 hover:text-red-700"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs sm:text-sm font-medium text-gray-700">
-                        Guía de ración diaria
-                      </label>
                     </div>
 
-                    <div className="mt-4">
+                    <div>
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <p className="text-[11px] sm:text-xs text-gray-600">
-                          Completa la tabla (ideal para matrices 2x2, 3x3, 4x4, etc.)
-                        </p>
-                        <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
+                        <label className="text-xs sm:text-sm font-medium text-gray-700">
+                          Análisis garantizado
+                        </label>
+                        <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={addFeedingGuideColumn}
-                            className="px-2 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-100 font-medium text-gray-600"
+                            onClick={addAnalysisRow}
+                            className="px-2 py-1 rounded-md border border-gray-300 text-[11px] sm:text-xs bg-white hover:bg-gray-100"
                           >
-                            + Columna
-                          </button>
-                          <button
-                            type="button"
-                            onClick={addFeedingGuideRow}
-                            className="px-2 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-100 font-medium text-gray-600"
-                          >
-                            + Fila
-                          </button>
-                          <button
-                            type="button"
-                            onClick={resetFeedingGuideTable}
-                            className="px-2 py-1 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-medium"
-                          >
-                            Reiniciar
+                            + Añadir fila
                           </button>
                         </div>
                       </div>
+                      {analysisRows.length === 0 && (
+                        <p className="text-[11px] text-gray-500 mb-2">
+                          Agrega filas para registrar proteína, grasa, fibra, humedad, calorías, etc.
+                        </p>
+                      )}
+                      <div className="space-y-2">
+                        {analysisRows.map((row, index) => (
+                          <div key={index} className="grid grid-cols-5 gap-2">
+                            <input
+                              type="text"
+                              value={row.label}
+                              onChange={(e) => handleAnalysisRowChange(index, 'label', e.target.value)}
+                              className="col-span-3 px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Nutriente"
+                            />
+                            <input
+                              type="text"
+                              value={row.value}
+                              onChange={(e) => handleAnalysisRowChange(index, 'value', e.target.value)}
+                              className="col-span-2 px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Valor"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeAnalysisRow(index)}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-                      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-                        <table className="min-w-full w-max text-[11px] sm:text-xs">
-                          <thead className="bg-gray-50 text-gray-600">
-                            <tr>
-                              <th className="w-[40px] px-1 py-2 border-b border-gray-200 text-center"></th>
-                              {feedingGuideTable.columns.map((column, columnIndex) => (
-                                <th
-                                  key={`fg-column-${columnIndex}`}
-                                  className="px-3 py-2 text-left font-semibold border-b border-l border-gray-200 min-w-[120px]"
-                                >
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="text"
-                                      value={column}
-                                      onChange={(e) => handleFeedingGuideColumnChange(columnIndex, e.target.value)}
-                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                      placeholder={`Columna ${columnIndex + 1}`}
-                                    />
-                                    {feedingGuideTable.columns.length > MIN_FEEDING_GUIDE_COLUMNS && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs sm:text-sm font-medium text-gray-700">
+                          Guía de ración diaria
+                        </label>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <p className="text-[11px] sm:text-xs text-gray-600">
+                            Completa la tabla (ideal para matrices 2x2, 3x3, 4x4, etc.)
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
+                            <button
+                              type="button"
+                              onClick={addFeedingGuideColumn}
+                              className="px-2 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-100 font-medium text-gray-600"
+                            >
+                              + Columna
+                            </button>
+                            <button
+                              type="button"
+                              onClick={addFeedingGuideRow}
+                              className="px-2 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-100 font-medium text-gray-600"
+                            >
+                              + Fila
+                            </button>
+                            <button
+                              type="button"
+                              onClick={resetFeedingGuideTable}
+                              className="px-2 py-1 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-medium"
+                            >
+                              Reiniciar
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                          <table className="min-w-full w-max text-[11px] sm:text-xs">
+                            <thead className="bg-gray-50 text-gray-600">
+                              <tr>
+                                <th className="w-[40px] px-1 py-2 border-b border-gray-200 text-center"></th>
+                                {feedingGuideTable.columns.map((column, columnIndex) => (
+                                  <th
+                                    key={`fg-column-${columnIndex}`}
+                                    className="px-3 py-2 text-left font-semibold border-b border-l border-gray-200 min-w-[120px]"
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="text"
+                                        value={column}
+                                        onChange={(e) => handleFeedingGuideColumnChange(columnIndex, e.target.value)}
+                                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder={`Columna ${columnIndex + 1}`}
+                                      />
+                                      {feedingGuideTable.columns.length > MIN_FEEDING_GUIDE_COLUMNS && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removeFeedingGuideColumn(columnIndex)}
+                                          className="text-gray-400 hover:text-red-500"
+                                          title="Eliminar columna"
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                    </div>
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {feedingGuideTable.rows.map((row, rowIndex) => (
+                                <tr key={`fg-row-${rowIndex}`}>
+                                  <td className="w-[40px] px-1 py-2 align-top text-center">
+                                    {feedingGuideTable.rows.length > MIN_FEEDING_GUIDE_ROWS && (
                                       <button
                                         type="button"
-                                        onClick={() => removeFeedingGuideColumn(columnIndex)}
+                                        onClick={() => removeFeedingGuideRow(rowIndex)}
                                         className="text-gray-400 hover:text-red-500"
-                                        title="Eliminar columna"
+                                        title="Eliminar fila"
                                       >
                                         ✕
                                       </button>
                                     )}
-                                  </div>
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {feedingGuideTable.rows.map((row, rowIndex) => (
-                              <tr key={`fg-row-${rowIndex}`}>
-                                <td className="w-[40px] px-1 py-2 align-top text-center">
-                                  {feedingGuideTable.rows.length > MIN_FEEDING_GUIDE_ROWS && (
-                                    <button
-                                      type="button"
-                                      onClick={() => removeFeedingGuideRow(rowIndex)}
-                                      className="text-gray-400 hover:text-red-500"
-                                      title="Eliminar fila"
-                                    >
-                                      ✕
-                                    </button>
-                                  )}
-                                </td>
-                                {feedingGuideTable.columns.map((_, columnIndex) => (
-                                  <td key={`fg-cell-${rowIndex}-${columnIndex}`} className="px-2 py-2 align-top">
-                                    <input
-                                      type="text"
-                                      value={row.values?.[columnIndex] ?? ''}
-                                      onChange={(e) =>
-                                        handleFeedingGuideCellChange(rowIndex, columnIndex, e.target.value)
-                                      }
-                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                      placeholder="Ej: 150 g"
-                                    />
                                   </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                  {feedingGuideTable.columns.map((_, columnIndex) => (
+                                    <td key={`fg-cell-${rowIndex}-${columnIndex}`} className="px-2 py-2 align-top">
+                                      <input
+                                        type="text"
+                                        value={row.values?.[columnIndex] ?? ''}
+                                        onChange={(e) =>
+                                          handleFeedingGuideCellChange(rowIndex, columnIndex, e.target.value)
+                                        }
+                                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Ej: 150 g"
+                                      />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="mt-2 text-[11px] text-gray-500">
+                          Usa filas para rangos de peso o edad y columnas para raciones (gramos, tazas, etc.). Se mostrará
+                          tal cual en la tarjeta del producto.
+                        </p>
                       </div>
-                      <p className="mt-2 text-[11px] text-gray-500">
-                        Usa filas para rangos de peso o edad y columnas para raciones (gramos, tazas, etc.). Se mostrará
-                        tal cual en la tarjeta del producto.
-                      </p>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 <div className="mb-4 sm:mb-6">
                   <label htmlFor="product-image" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
