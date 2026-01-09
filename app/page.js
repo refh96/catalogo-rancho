@@ -1239,7 +1239,8 @@ export default function Home() {
     };
     
     if (editingProduct) {
-      updateProduct(editingProduct.category, editingProduct.id, newProduct);
+      // Usar la categoría del formulario en lugar de la categoría anterior
+      updateProduct(formData.category, editingProduct.id, newProduct);
       showAlert(`"${newProduct.name}" actualizado exitosamente`, 'success');
     } else {
       addProduct(formData.category, newProduct);

@@ -98,6 +98,7 @@ export function ProductProvider({ children }) {
     const productRef = doc(db, 'products', productId);
     await updateDoc(productRef, {
       ...updatedProduct,
+      category, // Incluir la categoría en la actualización
       updatedAt: new Date().toISOString()
     });
     // No actualizamos el estado local aquí, lo manejará onSnapshot
