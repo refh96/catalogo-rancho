@@ -6,80 +6,22 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #ffffff;
+  --color-foreground: #171717;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-:root[data-theme='light'] {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-:root[data-theme='dark'] {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-}
-
-/* Overrides para clases comunes de Tailwind en modo oscuro */
-:root[data-theme='dark'] .bg-gray-50 {
-  background-color: #020617 !important; /* slate-950 aprox */
-}
-
-:root[data-theme='dark'] .bg-white {
-  background-color: #111827 !important; /* gray-900 aprox */
-}
-
-:root[data-theme='dark'] .border-gray-100,
-:root[data-theme='dark'] .border-gray-200,
-:root[data-theme='dark'] .border-gray-300 {
-  border-color: #374151 !important; /* gray-700 aprox */
-}
-
-:root[data-theme='dark'] .text-gray-900 {
-  color: #f9fafb !important; /* gray-50 */
-}
-
-:root[data-theme='dark'] .text-gray-700 {
-  color: #e5e7eb !important; /* gray-200 */
-}
-
-:root[data-theme='dark'] .text-gray-600 {
-  color: #d1d5db !important; /* gray-300 */
-}
-
-:root[data-theme='dark'] .text-gray-500 {
-  color: #9ca3af !important; /* gray-400 */
-}
-
-:root[data-theme='dark'] .text-indigo-600 {
-  color: #a5b4fc !important; /* indigo-200 */
-}
-
-:root[data-theme='dark'] .bg-indigo-700 {
-  background-color: #1d2545 !important; /* tono más suave en oscuro */
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #ffffff;
+  color: #171717;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Mejoras de contraste para dispositivos móviles */
 @media (max-width: 640px) {
   /* En móviles forzamos la paleta clara sin importar el tema global */
-  :root,
-  :root[data-theme='dark'],
-  :root[data-theme='light'] {
+  :root {
     --background: #ffffff;
     --foreground: #111827;
   }

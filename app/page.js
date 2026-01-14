@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useProducts } from '../src/contexts/ProductContext';
 import { useCart } from '../src/contexts/CartContext';
-import { useTheme } from '../src/contexts/ThemeContext';
 import CartIcon from '../src/components/CartIcon';
 import CartModal from '../src/components/CartModal';
 import FloatingCartButton from '../src/components/FloatingCartButton';
@@ -252,7 +251,6 @@ const CATALOG_SOCIAL_LINKS = [
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
-  const { theme, toggleTheme } = useTheme();
   const [activeCategory, setActiveCategory] = useState('perros');
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -267,6 +265,16 @@ export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cart, addToCart } = useCart();
   const [alert, setAlert] = useState(null);
+  
+  // Función para manejar el clic en el logo
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    setSearchTerm('');
+    setPriceFilter('all');
+    setLifeStage('all');
+    setSortBy('name');
+    window.location.href = '/';
+  };
   
   // Estados para búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -290,6 +298,8 @@ export default function Home() {
   const sharedLinkParamsRef = useRef(null);
   const [shareMenuContext, setShareMenuContext] = useState(null);
   const [supportsNativeShare, setSupportsNativeShare] = useState(false);
+  const [showScrollUp, setShowScrollUp] = useState(false);
+  const [showScrollDown, setShowScrollDown] = useState(true);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
@@ -439,12 +449,35 @@ export default function Home() {
     }
   };
 
+  // Efecto para detectar la posición del scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (typeof window === 'undefined') return;
+      
+      const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 10;
+      const isAtTop = window.scrollY < 10;
+      
+      setShowScrollUp(!isAtTop);
+      setShowScrollDown(!isAtBottom);
+      
+      console.log('Scroll position:', { scrollY: window.scrollY, isAtTop, isAtBottom });
+    };
+
+    // Asegurarse de que el efecto se ejecute al montar
+    if (typeof window !== 'undefined') {
+      handleScroll();
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
   const handleScrollToFooter = () => {
     if (typeof window === 'undefined') return;
     window.scrollTo({
       top: document.body.scrollHeight,
       behavior: 'smooth'
     });
+    setShowScrollDown(false);
   };
 
   const handleAccessorySpecChange = (field, value) => {
@@ -487,6 +520,7 @@ export default function Home() {
       top: 0,
       behavior: 'smooth'
     });
+    setShowScrollUp(false);
   };
 
   const handleNativeShare = async (product, shareDataOverride) => {
@@ -1317,12 +1351,7 @@ export default function Home() {
   };
 
   return (
-    <div
-      className={`min-h-screen flex flex-col ${
-        theme === 'dark'
-          ? 'bg-gray-950 text-gray-100'
-          : 'bg-gray-50 text-gray-900'
-      }`}
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900"
     >
       {/* Sistema de Alertas */}
       {alert && (
@@ -1343,7 +1372,7 @@ export default function Home() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3 ml-2 sm:ml-0">
+            <a href="/" onClick={handleLogoClick} className="flex items-center space-x-2 cursor-pointer">
             {!headerLogoFailed ? (
               <Image
                 src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
@@ -1359,45 +1388,11 @@ export default function Home() {
                 <span className="text-white text-sm font-bold">RM</span>
               </div>
             )}
-            <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-indigo-600">Rancho Mascotas Hualpén</h1>
-          </div>
+            <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+              Rancho Mascotas Hualpén
+            </h1>
+          </a>
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="hidden sm:inline-flex items-center px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                {theme === 'dark' ? (
-                  <>
-                    {/* Sol para modo claro */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1 text-yellow-500"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M10 3.5a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM10 15.5a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM4.22 5.64a1 1 0 011.42-1.42h0a1 1 0 11-1.42 1.42zM14.36 15.78a1 1 0 011.42-1.42h0a1 1 0 11-1.42 1.42zM3.5 10a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM15.5 10a1 1 0 011-1h0a1 1 0 110 2h0a1 1 0 01-1-1zM4.22 14.36a1 1 0 010-1.42h0a1 1 0 111.42 1.42h0a1 1 0 01-1.42 0zM14.36 4.22a1 1 0 010-1.42h0a1 1 0 111.42 1.42h0a1 1 0 01-1.42 0z" />
-                      <path d="M10 6.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" />
-                    </svg>
-                    <span>Modo claro</span>
-                  </>
-                ) : theme === 'light' ? (
-                  <>
-                    {/* Luna para modo oscuro */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1 text-indigo-600"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M17.293 13.293A8 8 0 016.707 2.707 6 6 0 1017.293 13.293z" />
-                    </svg>
-                    <span>Modo oscuro</span>
-                  </>
-                ) : (
-                  <span>Tema</span>
-                )}
-              </button>
               <Link 
                 href="/encuentrenos"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -1486,7 +1481,7 @@ export default function Home() {
               >
                 {category === 'perros' && '🐶 Perros'}
                 {category === 'gatos' && '🐱 Gatos'}
-                {category === 'mascotasPequeñas' && '🐹 Mascotas Pequeñas'}
+                {category === 'mascotasPequeñas' && '🐹 Mascota Pequeña'}
                 {category === 'accesorios' && '🎾 Accesorios y Juguetes'}
                 {category === 'farmacia' && '💊 Farmacia'}
               </button>
@@ -2954,30 +2949,36 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      <div className="fixed bottom-32 right-4 sm:right-6 z-30 flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleScrollToTop}
-          className="p-3 rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
-          aria-label="Ir al inicio del catálogo"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11l7-7 7 7" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v17" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          onClick={handleScrollToFooter}
-          className="p-3 rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
-          aria-label="Ir al final del catálogo"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 13l-7 7-7-7" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20V3" />
-          </svg>
-        </button>
-      </div>
+      {/* Botones de desplazamiento - Ocultos cuando hay detalles visibles */}
+      {!selectedProductDetails && !isCartOpen && !showLogin && !showAddProduct && (
+        <div className="fixed right-3 sm:right-4 z-40 flex flex-col gap-2" style={{ bottom: '120px' }}>
+          {showScrollUp && (
+            <button
+              type="button"
+              onClick={handleScrollToTop}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600/90 text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+              aria-label="Ir al inicio del catálogo"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+          )}
+          
+          {showScrollDown && (
+            <button
+              type="button"
+              onClick={handleScrollToFooter}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600/90 text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+              aria-label="Ir al final del catálogo"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       <FloatingCartButton onClick={() => setIsCartOpen(true)} />
       {/* Modal del Carrito */}
