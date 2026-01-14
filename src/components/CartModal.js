@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useCart } from '../contexts/CartContext';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const formatDateKey = (date) => {
   const year = date.getFullYear();
@@ -312,9 +312,10 @@ export default function CartModal({ isOpen, onClose }) {
                       </button>
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="text-red-500 ml-2"
+                        className="text-red-500 hover:text-red-700 transition-colors p-1 ml-2"
+                        aria-label="Eliminar producto"
                       >
-                        Eliminar
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
