@@ -295,7 +295,7 @@ export default function Home() {
   const [showProductScanner, setShowProductScanner] = useState(false);
   const [showTextScanner, setShowTextScanner] = useState(false);
   const [textScannerTarget, setTextScannerTarget] = useState(null);
-  const [siteVisits, setSiteVisits] = useState(0);
+  // Visitor counter removed
   const [cartMetrics, setCartMetrics] = useState([]);
   const [expandedCompositions, setExpandedCompositions] = useState({});
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
@@ -934,37 +934,7 @@ export default function Home() {
     };
   }, [selectedProductDetails]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const registerVisit = async () => {
-      try {
-        const response = await fetch('/api/visits', { method: 'POST' });
-        if (response.ok) {
-          const data = await response.json();
-          if (isMounted) {
-            setSiteVisits(Number(data.visits ?? 0));
-          }
-          return;
-        }
-
-        const fallbackResponse = await fetch('/api/visits');
-        if (!fallbackResponse.ok) return;
-        const fallbackData = await fallbackResponse.json();
-        if (isMounted) {
-          setSiteVisits(Number(fallbackData.visits ?? 0));
-        }
-      } catch (error) {
-        console.error('Error registrando/obteniendo las visitas del sitio:', error);
-      }
-    };
-
-    registerVisit();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Visitor counter functionality removed
 
   useEffect(() => {
     let isMounted = true;
@@ -1679,9 +1649,6 @@ export default function Home() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 sm:dark:text-white">Panel de estadísticas</h3>
                   <p className="text-sm text-gray-500 sm:dark:text-gray-400">Solo visible para administradores</p>
-                </div>
-                <div className="text-sm sm:text-base font-medium text-indigo-600 sm:dark:text-indigo-300">
-                  Visitas al sitio: <span className="text-gray-900 sm:dark:text-white">{siteVisits.toLocaleString('es-CL')}</span>
                 </div>
               </div>
 
