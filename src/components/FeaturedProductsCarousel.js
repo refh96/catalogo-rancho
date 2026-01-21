@@ -116,12 +116,12 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       <div className="relative py-10">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 via-white to-cyan-50" />
         <div className="container relative mx-auto px-4">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-indigo-400">Destacados</p>
-                <h2 className="text-3xl font-bold text-gray-800">Descubriendo ofertas...</h2>
-              </div>
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="flex flex-col items-center text-center">
+              <p className="text-xs uppercase tracking-[0.4em] text-indigo-400">Destacados</p>
+              <h2 className="gradient-title mt-2 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-400">
+                Descubriendo ofertas...
+              </h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
               {[1, 2, 3].map((i) => (

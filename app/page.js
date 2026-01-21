@@ -940,25 +940,22 @@ export default function Home() {
     const registerVisit = async () => {
       try {
         const response = await fetch('/api/visits', { method: 'POST' });
-        if (!response.ok) {
-          throw new Error('Failed to increment visits');
-        }
-        const data = await response.json();
-        if (isMounted) {
-          setSiteVisits(Number(data.visits ?? 0));
-        }
-      } catch (error) {
-        console.error('Error registrando la visita del sitio:', error);
-        try {
-          const response = await fetch('/api/visits');
-          if (!response.ok) return;
+        if (response.ok) {
           const data = await response.json();
           if (isMounted) {
             setSiteVisits(Number(data.visits ?? 0));
           }
-        } catch (fallbackError) {
-          console.error('Error obteniendo las visitas del sitio:', fallbackError);
+          return;
         }
+
+        const fallbackResponse = await fetch('/api/visits');
+        if (!fallbackResponse.ok) return;
+        const fallbackData = await fallbackResponse.json();
+        if (isMounted) {
+          setSiteVisits(Number(fallbackData.visits ?? 0));
+        }
+      } catch (error) {
+        console.error('Error registrando/obteniendo las visitas del sitio:', error);
       }
     };
 
