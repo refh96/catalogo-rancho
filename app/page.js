@@ -10,6 +10,12 @@ import CartModal from '../src/components/CartModal';
 import FloatingCartButton from '../src/components/FloatingCartButton';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
 import TextScannerModal from '../src/components/TextScannerModal';
+import dynamic from 'next/dynamic';
+
+const FeaturedProductsCarousel = dynamic(
+  () => import('@/components/FeaturedProductsCarousel'),
+  { ssr: false }
+);
 
 const createEmptyFeedingGuideTable = () => ({
   columns: ['Peso', 'Ración'],
@@ -251,6 +257,7 @@ const CATALOG_SOCIAL_LINKS = [
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
+  const isAdmin = user?.role === 'admin';
   const [activeCategory, setActiveCategory] = useState('perros');
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -292,6 +299,7 @@ export default function Home() {
   const [cartMetrics, setCartMetrics] = useState([]);
   const [expandedCompositions, setExpandedCompositions] = useState({});
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
+  const [featuredProcessingId, setFeaturedProcessingId] = useState(null);
   const searchInputRef = useRef(null);
   const voiceInputTargetRef = useRef('search');
   const hasAppliedSharedFiltersRef = useRef(false);
@@ -1261,6 +1269,37 @@ export default function Home() {
     }, 3000);
   };
 
+  const handleToggleFeatured = async (product) => {
+    if (!isAdmin || !product?.id) return;
+
+    const category = product.category || activeCategory;
+    if (!category) {
+      showAlert('No se pudo determinar la categoría del producto', 'error');
+      return;
+    }
+
+    try {
+      setFeaturedProcessingId(product.id);
+      const { id, category: _ignoredCategory, ...productData } = product;
+      const updatedProduct = {
+        ...productData,
+        isFeatured: !product.isFeatured
+      };
+      await updateProduct(category, id, updatedProduct);
+      showAlert(
+        product.isFeatured
+          ? `"${product.name}" se quitó del carrusel`
+          : `"${product.name}" ahora es destacado`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error actualizando destacado:', error);
+      showAlert('No se pudo actualizar el estado destacado', 'error');
+    } finally {
+      setFeaturedProcessingId(null);
+    }
+  };
+
   const handleAddProduct = (e) => {
     e.preventDefault();
     const newProduct = {
@@ -1430,16 +1469,18 @@ export default function Home() {
         </div>
       </header>
 
+      <FeaturedProductsCarousel onProductSelect={openDetailsModal} />
+
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="bg-indigo-700 rounded-lg shadow-xl overflow-hidden mb-6 sm:mb-8 lg:mb-12">
           <div className="max-w-7xl mx-auto py-8 px-4 sm:py-12 sm:px-6 lg:px-8 lg:py-16">
             <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white lg:text-4xl">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white lg:text-4xl text-center lg:text-left mobile-headline-white">
                   <span className="block">Todo para tus mascotas</span>
                   <span className="block text-indigo-200">En un solo lugar</span>
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm sm:text-lg text-indigo-100">
+                <p className="mt-3 max-w-3xl text-sm sm:text-lg text-indigo-100 text-center lg:text-left">
                   Encuentra los mejores productos para el cuidado y entretenimiento de tus mascotas.
                 </p>
               </div>
@@ -1970,9 +2011,9 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => openDetailsModal(product)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white dark:text-white btn-text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
                           >
-                            <span>Ver detalles completos</span>
+                            <span className="btn-text-white-text">Ver detalles completos</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H5m14 0h-4m0 0V8m0 4v4" />
                             </svg>
@@ -2009,15 +2050,35 @@ export default function Home() {
                       disabled={product.stock <= 0}
                       className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm transition-colors duration-200 ${
                         product.stock > 0 
-                          ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                          ? 'bg-indigo-600 text-white dark:text-white btn-text-white hover:bg-indigo-700' 
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      {product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
+                      <span className={product.stock > 0 ? 'btn-text-white-text' : ''}>
+                        {product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
+                      </span>
                     </button>
                     {user && (
-                      <div className="flex space-x-1 sm:space-x-2">
-                        <button 
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleToggleFeatured(product)}
+                            disabled={featuredProcessingId === product.id}
+                            className={`px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-semibold border transition-colors ${
+                              product.isFeatured
+                                ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100'
+                                : 'border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100'
+                            } ${featuredProcessingId === product.id ? 'opacity-70 cursor-not-allowed' : ''}`}
+                          >
+                            {featuredProcessingId === product.id
+                              ? 'Actualizando...'
+                              : product.isFeatured
+                                ? 'Quitar del carrusel'
+                                : 'Destacar'}
+                          </button>
+                        )}
+                        <div className="flex space-x-1 sm:space-x-2">
+                          <button 
                           onClick={() => handleEditProduct(product, activeCategory)}
                           className="p-1 text-yellow-600 hover:text-yellow-700"
                           title="Editar producto"
@@ -2035,6 +2096,7 @@ export default function Home() {
                             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                         </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2089,7 +2151,7 @@ export default function Home() {
                   <p className="text-3xl font-bold text-gray-900">
                     ${selectedProductDetails.product.price.toLocaleString('es-CL')}
                   </p>
-                  {selectedProductDetails.product.barcode && (
+                  {user && selectedProductDetails.product.barcode && (
                     <p className="text-xs text-gray-500 mt-1">SKU {selectedProductDetails.product.barcode}</p>
                   )}
                 </div>
@@ -2101,6 +2163,41 @@ export default function Home() {
                     </p>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  onClick={() =>
+                    handleAddToCart({
+                      ...selectedProductDetails.product,
+                      category: selectedProductDetails.product.category || activeCategory
+                    })
+                  }
+                  disabled={selectedProductDetails.product.stock <= 0}
+                  className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow ${
+                    selectedProductDetails.product.stock > 0
+                      ? 'bg-indigo-600 text-white dark:text-white btn-text-white hover:bg-indigo-700'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="h-4 w-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3h2l.4 2M7 13h12l2-8H6.4M7 13l-2 8h12M10 21a1 1 0 11-2 0 1 1 0 012 0zm8 0a1 1 0 11-2 0 1 1 0 012 0z"
+                    />
+                  </svg>
+                  <span className={selectedProductDetails.product.stock > 0 ? 'btn-text-white-text' : ''}>
+                    {selectedProductDetails.product.stock > 0 ? 'Agregar al carrito' : 'Producto agotado'}
+                  </span>
+                </button>
               </div>
 
               <div className="mt-6 space-y-6 text-sm">

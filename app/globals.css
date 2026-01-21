@@ -5,6 +5,32 @@
   --foreground: #171717;
 }
 
+.btn-text-white,
+.btn-text-white *,
+.btn-text-white svg,
+.btn-text-white-text {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.mobile-headline-white,
+.mobile-headline-white *,
+.mobile-headline-white span {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @theme inline {
   --color-background: #ffffff;
   --color-foreground: #171717;
@@ -80,7 +106,9 @@ body {
   }
 
   /* Títulos del carrito y elementos importantes */
-  h2, h3, h4 {
+  h2:not(.gradient-title),
+  h3,
+  h4 {
     color: var(--foreground) !important;
   }
 
@@ -107,7 +135,7 @@ body {
   }
   
   /* Botones de cantidad y contadores */
-  button {
+  button:not(.btn-text-white) {
     color: var(--foreground) !important;
   }
   
@@ -117,7 +145,7 @@ body {
   }
   
   /* Botones de comuna y selección */
-  button[type="button"] {
+  button[type="button"]:not(.btn-text-white) {
     color: var(--foreground) !important;
   }
   
@@ -127,7 +155,16 @@ body {
   }
   
   /* Enlaces y elementos clickeables */
-  a, .hover\\:text-gray-700 {
+  a, .hover\:text-gray-700 {
     color: var(--foreground) !important;
+  }
+  
+  .btn-text-white,
+  .btn-text-white *,
+  .btn-text-white svg,
+  .btn-text-white-text {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
   }
 }
