@@ -258,7 +258,7 @@ export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
   const isAdmin = user?.role === 'admin';
-  const [activeCategory, setActiveCategory] = useState('perros');
+  const [activeCategory, setActiveCategory] = useState('todos'); // Valor por defecto 'todos'
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [headerLogoFailed, setHeaderLogoFailed] = useState(false);
@@ -1001,8 +1001,33 @@ export default function Home() {
       .replace(/(\d+)\s*(k|kg|kilo|kilos|kgs?)/g, '$1kg');
   const filteredProducts = useMemo(() => {
     console.log('Actualizando productos. Etapa de vida actual:', lifeStage);
-    console.log('Productos a filtrar:', products[activeCategory]);
-    let result = products[activeCategory] || [];
+    
+    // Obtener todos los productos o filtrar por categoría
+    let result = [];
+    if (activeCategory === 'todos') {
+      // Si es 'todos', aplanar el objeto de productos y asegurar que tengan precio
+      result = Object.values(products)
+        .flat()
+        .filter(Boolean)
+        .map(product => ({
+          ...product,
+          price: product.price || 0, // Asegurar que siempre haya un precio
+          name: product.name || 'Producto sin nombre',
+          stock: product.stock || 0,
+          barcode: product.barcode || ''
+        }));
+    } else {
+      // Si es una categoría específica, obtener solo esos productos
+      result = (products[activeCategory] || []).map(product => ({
+        ...product,
+        price: product.price || 0, // Asegurar que siempre haya un precio
+        name: product.name || 'Producto sin nombre',
+        stock: product.stock || 0,
+        barcode: product.barcode || ''
+      }));
+    }
+    
+    console.log('Productos a filtrar:', result);
     
     // Filtrar por término de búsqueda (todas las palabras, en cualquier orden)
     if (searchTerm) {
@@ -1059,6 +1084,16 @@ export default function Home() {
 
     return result;
   }, [products, activeCategory, searchTerm, priceFilter, lifeStage, sortBy]);
+
+  // Función para manejar el cambio de categoría
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
+    // Resetear otros filtros al cambiar de categoría
+    setSearchTerm('');
+    setPriceFilter('all');
+    setLifeStage('all');
+    setSortBy('name');
+  };
 
   const flatProducts = useMemo(() => {
     if (!products) return [];
@@ -1475,14 +1510,25 @@ export default function Home() {
           
           {/* Filtros de categoría */}
           <div className="flex flex-wrap gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-4 overflow-x-auto pb-2">
-            {Object.keys(products).filter(category => 
+            <button
+              key="todos"
+              onClick={() => handleCategoryChange('todos')}
+              className={`px-3 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
+                activeCategory === 'todos'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+            >
+              Todos
+            </button>
+            {Object.keys(products || {}).filter(category => 
               ['perros', 'gatos', 'mascotasPequeñas', 'accesorios', 'farmacia'].includes(category)
             ).map((category) => (
               <button
                 key={category}
-                onClick={() => setActiveCategory(category)}
+                onClick={() => handleCategoryChange(category)}
                 className={`px-3 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeCategory === category
+                  (activeCategory === category || (category === 'todos' && activeCategory === 'todos'))
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                 }`}
@@ -1917,14 +1963,31 @@ export default function Home() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-3 text-white shadow-inner">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-100/80">Precio</p>
-                      <p className="text-2xl font-semibold leading-tight">
-                        ${product.price.toLocaleString('es-CL')}
-                      </p>
-                      {showSku && product.barcode && (
-                        <p className="text-[10px] text-indigo-100/90 mt-1">SKU {product.barcode}</p>
-                      )}
+                    <div className="mt-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-4 text-white shadow-inner">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-100/80">Precio</p>
+                          <p className="text-2xl font-semibold leading-tight">
+                            ${(product.price || 0).toLocaleString('es-CL')}
+                          </p>
+                          {showSku && product.barcode && (
+                            <p className="text-[10px] text-indigo-100/90 mt-1">SKU {product.barcode}</p>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => handleAddToCart({ ...product, category: activeCategory })}
+                          disabled={product.stock <= 0}
+                          className={`ml-4 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 flex-shrink-0 ${
+                            product.stock > 0 
+                              ? 'bg-white text-indigo-600 hover:bg-indigo-50' 
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <span>
+                            {product.stock > 0 ? 'Agregar' : 'Agotado'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                     
                     {/* Estado del stock */}
@@ -2008,20 +2071,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-gray-100 bg-gray-50 flex justify-between items-center gap-2 dark:border-slate-700 dark:bg-slate-900/60">
-                    <button 
-                      onClick={() => handleAddToCart({ ...product, category: activeCategory })}
-                      disabled={product.stock <= 0}
-                      className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm transition-colors duration-200 ${
-                        product.stock > 0 
-                          ? 'bg-indigo-600 text-white dark:text-white btn-text-white hover:bg-indigo-700' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <span className={product.stock > 0 ? 'btn-text-white-text' : ''}>
-                        {product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
-                      </span>
-                    </button>
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-gray-100 bg-gray-50 flex justify-end items-center gap-2 dark:border-slate-700 dark:bg-slate-900/60">
                     {user && (
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         {isAdmin && (
