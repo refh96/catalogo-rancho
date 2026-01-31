@@ -170,25 +170,36 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
         
         const currentScroll = container.scrollLeft;
         const containerWidth = container.clientWidth;
-        const centerPosition = currentScroll + (containerWidth / 2);
-        let currentIndex = Math.round(centerPosition / totalCardWidth);
+        const maxScroll = container.scrollWidth - container.clientWidth;
         
-        // Calcular el siguiente índice
-        let nextIndex = currentIndex + 1;
-        if (nextIndex >= featuredProducts.length) {
-          nextIndex = 0;
+        // Verificar si estamos cerca del final (con un margen de 50px)
+        const isNearEnd = currentScroll >= maxScroll - 50;
+        
+        if (isNearEnd) {
+          // Reiniciar al inicio
           container.scrollTo({ left: 0, behavior: 'smooth' });
           return;
         }
         
         if (isMobile) {
-          // En móviles, centrar el siguiente elemento
+          // En móviles, calcular el índice actual y avanzar uno
+          const centerPosition = currentScroll + (containerWidth / 2);
+          let currentIndex = Math.round(centerPosition / totalCardWidth);
+          currentIndex = Math.max(0, Math.min(currentIndex, featuredProducts.length - 1));
+          
+          // Verificar si estamos en el último producto
+          if (currentIndex >= featuredProducts.length - 1) {
+            container.scrollTo({ left: 0, behavior: 'smooth' });
+            return;
+          }
+          
+          const nextIndex = currentIndex + 1;
           scrollCarousel(null, nextIndex);
         } else {
           // En escritorio, desplazamiento normal
           scrollCarousel('right');
         }
-      }, 4000);
+      }, 2500);
     };
 
     // Configurar eventos táctiles solo en móviles
