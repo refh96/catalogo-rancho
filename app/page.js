@@ -272,6 +272,7 @@ export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cart, addToCart } = useCart();
   const [alert, setAlert] = useState(null);
+  const [clickedButtons, setClickedButtons] = useState({});
   
   // Función para manejar el clic en el logo
   const handleLogoClick = (e) => {
@@ -1253,15 +1254,36 @@ export default function Home() {
   );
 
   const handleAddToCart = (product) => {
-    // Verificar si hay stock disponible
-    const currentStock = product.stock || 0;
-    if (currentStock <= 0) {
-      showAlert('Este producto está agotado', 'error');
-      return;
-    }
+    if (product.stock <= 0) return;
+    
     addToCart(product);
-    showAlert(`"${product.name}" agregado al carrito`, 'success');
+    
+    // Mostrar notificación
+    showAlert(`¡${product.name} se ha añadido al carrito!`, 'success');
+    
+    // Registrar métrica
     recordCartMetric(product);
+  };
+
+  const handleAddWithAnimation = (product, e) => {
+    e.preventDefault();
+    
+    // Activar animación
+    setClickedButtons(prev => ({
+      ...prev,
+      [product.id]: true
+    }));
+    
+    // Agregar al carrito
+    handleAddToCart({ ...product, category: activeCategory });
+    
+    // Desactivar animación después de 500ms
+    setTimeout(() => {
+      setClickedButtons(prev => ({
+        ...prev,
+        [product.id]: false
+      }));
+    }, 500);
   };
 
   const showAlert = (message, type = 'success') => {
@@ -1975,15 +1997,17 @@ export default function Home() {
                           )}
                         </div>
                         <button 
-                          onClick={() => handleAddToCart({ ...product, category: activeCategory })}
+                          onClick={(e) => handleAddWithAnimation(product, e)}
                           disabled={product.stock <= 0}
-                          className={`ml-4 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 flex-shrink-0 ${
+                          className={`ml-4 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex-shrink-0 ${
                             product.stock > 0 
                               ? 'bg-white text-indigo-600 hover:bg-indigo-50' 
                               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          } ${
+                            clickedButtons[product.id] ? 'animate-ping' : ''
                           }`}
                         >
-                          <span>
+                          <span className={clickedButtons[product.id] ? 'opacity-0' : 'opacity-100'}>
                             {product.stock > 0 ? 'Agregar' : 'Agotado'}
                           </span>
                         </button>

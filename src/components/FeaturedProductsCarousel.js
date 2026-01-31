@@ -67,32 +67,148 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
     }
   };
 
-  const scrollCarousel = (direction = 'right') => {
+  const scrollCarousel = (direction = 'right', targetIndex = null) => {
     const container = scrollRef.current;
     if (!container) return;
+    
+    const isMobile = window.innerWidth < 640;
+    const containerWidth = container.clientWidth;
+    const cardWidth = isMobile ? 250 : 280;
+    const gap = isMobile ? 16 : 24;
+    const totalCardWidth = cardWidth + gap;
+    
     if (direction === 'reset') {
       container.scrollTo({ left: 0, behavior: 'smooth' });
       return;
     }
-    const scrollAmount = direction === 'left' ? -280 : 280;
-    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    
+    if (isMobile && typeof targetIndex === 'number') {
+      // En móviles, centrar el elemento objetivo
+      const targetScroll = (targetIndex * totalCardWidth) - (containerWidth / 2) + (cardWidth / 2);
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const boundedScroll = Math.max(0, Math.min(targetScroll, maxScroll));
+      
+      container.scrollTo({
+        left: boundedScroll,
+        behavior: 'smooth'
+      });
+    } else {
+      // En escritorio o para navegación básica
+      const scrollAmount = direction === 'left' ? -totalCardWidth : totalCardWidth;
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || featuredProducts.length <= 1) return;
 
-    const interval = setInterval(() => {
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 10;
-      if (isAtEnd) {
-        scrollCarousel('reset');
-      } else {
-        scrollCarousel('right');
-      }
-    }, 4000);
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let isScrolling = false;
+    let autoScrollInterval;
 
-    return () => clearInterval(interval);
+    const isMobile = window.innerWidth < 640;
+    const cardWidth = isMobile ? 250 : 280;
+    const gap = isMobile ? 16 : 24;
+    const totalCardWidth = cardWidth + gap;
+
+    // Manejar el inicio del toque
+    const handleTouchStart = (e) => {
+      touchStartX = e.touches[0].clientX;
+      isScrolling = true;
+      clearInterval(autoScrollInterval);
+    };
+
+    // Manejar el movimiento del toque
+    const handleTouchMove = (e) => {
+      if (!isScrolling) return;
+      touchEndX = e.touches[0].clientX;
+      if (Math.abs(touchStartX - touchEndX) > 10) {
+        e.preventDefault();
+      }
+    };
+
+    // Manejar el final del toque (solo en móviles)
+    const handleTouchEnd = () => {
+      if (!isScrolling) return;
+      
+      if (isMobile) {
+        const diff = touchStartX - touchEndX;
+        const absDiff = Math.abs(diff);
+        
+        if (absDiff > 30) { // Umbral mínimo para considerar un deslizamiento
+          const direction = diff > 0 ? 'right' : 'left';
+          const currentScroll = container.scrollLeft;
+          const containerWidth = container.clientWidth;
+          const centerPosition = currentScroll + (containerWidth / 2);
+          const currentIndex = Math.round(centerPosition / totalCardWidth);
+          
+          let targetIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
+          targetIndex = Math.max(0, Math.min(targetIndex, featuredProducts.length - 1));
+          
+          scrollCarousel(null, targetIndex);
+        } else {
+          // Si el deslizamiento fue corto, centrar el elemento actual
+          const currentScroll = container.scrollLeft;
+          const centerPosition = currentScroll + (container.clientWidth / 2);
+          const currentIndex = Math.round(centerPosition / totalCardWidth);
+          scrollCarousel(null, currentIndex);
+        }
+      }
+      
+      isScrolling = false;
+      startAutoScroll();
+    };
+
+    // Iniciar el auto-desplazamiento
+    const startAutoScroll = () => {
+      clearInterval(autoScrollInterval);
+      
+      autoScrollInterval = setInterval(() => {
+        if (isScrolling) return;
+        
+        const currentScroll = container.scrollLeft;
+        const containerWidth = container.clientWidth;
+        const centerPosition = currentScroll + (containerWidth / 2);
+        let currentIndex = Math.round(centerPosition / totalCardWidth);
+        
+        // Calcular el siguiente índice
+        let nextIndex = currentIndex + 1;
+        if (nextIndex >= featuredProducts.length) {
+          nextIndex = 0;
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+          return;
+        }
+        
+        if (isMobile) {
+          // En móviles, centrar el siguiente elemento
+          scrollCarousel(null, nextIndex);
+        } else {
+          // En escritorio, desplazamiento normal
+          scrollCarousel('right');
+        }
+      }, 4000);
+    };
+
+    // Configurar eventos táctiles solo en móviles
+    if (isMobile) {
+      container.addEventListener('touchstart', handleTouchStart, { passive: false });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false });
+      container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+    
+    // Iniciar auto-desplazamiento
+    startAutoScroll();
+
+    return () => {
+      clearInterval(autoScrollInterval);
+      if (isMobile) {
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
+        container.removeEventListener('touchend', handleTouchEnd);
+      }
+    };
   }, [featuredProducts.length]);
 
   useEffect(() => {
@@ -213,12 +329,23 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
         <div className="relative mt-8">
           <div
             ref={scrollRef}
-            className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory"
+            className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-4 sm:px-0"
+            style={{
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              scrollBehavior: 'smooth',
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
           >
             {featuredProducts.map((product, index) => (
               <div
                 key={product.id}
-                className="group flex-shrink-0 snap-start rounded-3xl border border-white/80 bg-white/90 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
+                className="group flex-shrink-0 snap-center rounded-3xl border border-white/80 bg-white/90 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
+                style={{
+                  scrollSnapAlign: 'center',
+                  flex: '0 0 auto',
+                }}
               >
                 <div className="relative mt-4">
                   <Link
