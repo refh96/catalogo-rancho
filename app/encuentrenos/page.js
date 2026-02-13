@@ -174,7 +174,7 @@ export default function Encuentrenos() {
                 </div>
                 <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                   <p className="text-sm text-indigo-800">
-                    <strong>Nota:</strong> Realizamos 2 repartos diarios. Mañana: 12:30 AM a 2:00 PM. Tarde: 7:00 PM a 9:00 PM.
+                    <strong>Nota:</strong> Realizamos 2 repartos diarios. Mañana: 12:30 AM a 3:00 PM. Tarde: 7:00 PM a 9:00 PM.
                   </p>
                 </div>
               </div>

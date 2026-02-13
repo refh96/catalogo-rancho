@@ -7,6 +7,7 @@ import { useProducts } from '../src/contexts/ProductContext';
 import { useCart } from '../src/contexts/CartContext';
 import CartIcon from '../src/components/CartIcon';
 import CartModal from '../src/components/CartModal';
+import WhatsAppButton from '../src/components/WhatsAppButton';
 import FloatingCartButton from '../src/components/FloatingCartButton';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
 import TextScannerModal from '../src/components/TextScannerModal';
@@ -1089,8 +1090,8 @@ export default function Home() {
   // Función para manejar el cambio de categoría
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
-    // Resetear otros filtros al cambiar de categoría
-    setSearchTerm('');
+    // Mantener el término de búsqueda, solo resetear otros filtros
+    // setSearchTerm(''); // Comentado para mantener el texto de búsqueda
     setPriceFilter('all');
     setLifeStage('all');
     setSortBy('name');
@@ -3086,7 +3087,7 @@ export default function Home() {
       </footer>
       {/* Botones de desplazamiento - Ocultos cuando hay detalles visibles */}
       {!selectedProductDetails && !isCartOpen && !showLogin && !showAddProduct && (
-        <div className="fixed right-3 sm:right-4 z-40 flex flex-col gap-2" style={{ bottom: '120px' }}>
+        <div className="fixed right-3 sm:right-4 z-40 flex flex-col gap-2" style={{ bottom: '160px' }}>
           {showScrollUp && (
             <button
               type="button"
@@ -3118,6 +3119,8 @@ export default function Home() {
       <FloatingCartButton onClick={() => setIsCartOpen(true)} />
       {/* Modal del Carrito */}
       <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {/* Botón flotante de WhatsApp */}
+      <WhatsAppButton />
     </div>
   );
 }

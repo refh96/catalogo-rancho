@@ -1,6 +1,6 @@
 // src/components/CartModal.js
 'use client';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useCart } from '../contexts/CartContext';
 import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -105,6 +105,7 @@ export default function CartModal({ isOpen, onClose }) {
   } = useCart();
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [showStockAlert, setShowStockAlert] = useState(false);
 
   const [orderDetailsState, setOrderDetailsState] = useState(() => {
     const initialDelivery = getInitialDeliveryOptions();
@@ -208,6 +209,14 @@ export default function CartModal({ isOpen, onClose }) {
     }
   };
 
+  // Mensaje de stock visible al abrir el carrito
+  React.useEffect(() => {
+    if (isOpen && cart.length > 0) {
+      console.log('Mostrando mensaje de stock al abrir carrito');
+      setShowStockAlert(true);
+    }
+  }, [isOpen, cart.length]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // Validar que se haya seleccionado una comuna si es envío
@@ -266,6 +275,23 @@ export default function CartModal({ isOpen, onClose }) {
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
+
+        {/* Mensaje de confirmación de stock */}
+        {showStockAlert && (
+          <div className="bg-amber-50 border border-amber-200 p-3 mx-4 mt-4 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <span className="text-amber-600 text-lg">⚠️</span>
+              <div className="flex-1">
+                <p className="text-sm text-amber-800 font-medium">
+                  IMPORTANTE: Tu pedido está sujeto a confirmación de stock por parte del local.
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Te contactaremos a la brevedad para confirmar la disponibilidad de los productos y coordinar la entrega.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-4">
           {cart.length === 0 ? (

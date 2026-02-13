@@ -18,7 +18,6 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
   const { products, loading, updateProduct } = useProducts();
   const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const scrollRef = useRef(null);
 
   const featuredProducts = useMemo(() => {
@@ -27,6 +26,12 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       .flat()
       .filter((product) => product?.isFeatured);
   }, [products]);
+
+  // Triplicar productos para bucle infinito más robusto
+  const duplicatedProducts = useMemo(() => {
+    if (featuredProducts.length === 0) return [];
+    return [...featuredProducts, ...featuredProducts, ...featuredProducts];
+  }, [featuredProducts]);
 
   useEffect(() => {
     if (!loading && featuredProducts.length === 0) {
@@ -106,7 +111,8 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
     let touchStartX = 0;
     let touchEndX = 0;
     let isScrolling = false;
-    let autoScrollInterval;
+    let animationId;
+    let scrollSpeed = 15; // píxeles por frame
 
     const isMobile = window.innerWidth < 640;
     const cardWidth = isMobile ? 250 : 280;
@@ -117,7 +123,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
     const handleTouchStart = (e) => {
       touchStartX = e.touches[0].clientX;
       isScrolling = true;
-      clearInterval(autoScrollInterval);
+      cancelAnimationFrame(animationId);
     };
 
     // Manejar el movimiento del toque
@@ -129,16 +135,16 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       }
     };
 
-    // Manejar el final del toque (solo en móviles)
+    // Manejar el final del toque
     const handleTouchEnd = () => {
       if (!isScrolling) return;
       
-      if (isMobile) {
-        const diff = touchStartX - touchEndX;
-        const absDiff = Math.abs(diff);
-        
-        if (absDiff > 30) { // Umbral mínimo para considerar un deslizamiento
-          const direction = diff > 0 ? 'right' : 'left';
+      const touchDiff = touchStartX - touchEndX;
+      
+      if (Math.abs(touchDiff) > 10) {
+        if (touchDiff > 0) {
+          // Deslizar hacia la izquierda - siguiente producto
+          scrollCarousel('right');
           const currentScroll = container.scrollLeft;
           const containerWidth = container.clientWidth;
           const centerPosition = currentScroll + (containerWidth / 2);
@@ -161,45 +167,35 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       startAutoScroll();
     };
 
-    // Iniciar el auto-desplazamiento
-    const startAutoScroll = () => {
-      clearInterval(autoScrollInterval);
+    // Iniciar el movimiento perpetuo
+    const startPerpetualScroll = () => {
+      cancelAnimationFrame(animationId);
       
-      autoScrollInterval = setInterval(() => {
-        if (isScrolling) return;
+      const animate = () => {
+        if (isScrolling) {
+          animationId = requestAnimationFrame(animate);
+          return;
+        }
         
         const currentScroll = container.scrollLeft;
         const containerWidth = container.clientWidth;
         const maxScroll = container.scrollWidth - container.clientWidth;
         
-        // Verificar si estamos cerca del final (con un margen de 50px)
-        const isNearEnd = currentScroll >= maxScroll - 50;
+        // Movimiento perpetuo con reinicio forzado
+        const newScroll = currentScroll + scrollSpeed;
         
-        if (isNearEnd) {
-          // Reiniciar al inicio
-          container.scrollTo({ left: 0, behavior: 'smooth' });
-          return;
-        }
-        
-        if (isMobile) {
-          // En móviles, calcular el índice actual y avanzar uno
-          const centerPosition = currentScroll + (containerWidth / 2);
-          let currentIndex = Math.round(centerPosition / totalCardWidth);
-          currentIndex = Math.max(0, Math.min(currentIndex, featuredProducts.length - 1));
-          
-          // Verificar si estamos en el último producto
-          if (currentIndex >= featuredProducts.length - 1) {
-            container.scrollTo({ left: 0, behavior: 'smooth' });
-            return;
-          }
-          
-          const nextIndex = currentIndex + 1;
-          scrollCarousel(null, nextIndex);
+        // Reinicio forzado al inicio cuando llega al final
+        if (newScroll >= maxScroll) {
+          // Forzar reinicio completo
+          container.scrollTo({ left: 0, behavior: 'instant' });
         } else {
-          // En escritorio, desplazamiento normal
-          scrollCarousel('right');
+          container.scrollLeft = newScroll;
         }
-      }, 2500);
+        
+        animationId = requestAnimationFrame(animate);
+      };
+      
+      animationId = requestAnimationFrame(animate);
     };
 
     // Configurar eventos táctiles solo en móviles
@@ -209,33 +205,17 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       container.addEventListener('touchend', handleTouchEnd, { passive: true });
     }
     
-    // Iniciar auto-desplazamiento
-    startAutoScroll();
+    // Iniciar movimiento perpetuo
+    startPerpetualScroll();
 
     return () => {
-      clearInterval(autoScrollInterval);
+      cancelAnimationFrame(animationId);
       if (isMobile) {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
         container.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [featuredProducts.length]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      const maxScroll = scrollWidth - clientWidth;
-      const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
-      setScrollProgress(progress);
-    };
-
-    handleScroll();
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
   }, [featuredProducts.length]);
 
   if (loading) {
@@ -307,28 +287,6 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
           <h2 className="gradient-title mt-2 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-400">
             Productos destacados
           </h2>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => scrollCarousel('left')}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm"
-              aria-label="Desplazar carrusel a la izquierda"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollCarousel('right')}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm"
-              aria-label="Desplazar carrusel a la derecha"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
         </div>
 
         {isAdmin && (
@@ -340,18 +298,17 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
         <div className="relative mt-8">
           <div
             ref={scrollRef}
-            className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-4 sm:px-0"
+            className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0"
             style={{
-              scrollSnapType: 'x mandatory',
               WebkitOverflowScrolling: 'touch',
               scrollBehavior: 'smooth',
               msOverflowStyle: 'none',
               scrollbarWidth: 'none',
             }}
           >
-            {featuredProducts.map((product, index) => (
+            {duplicatedProducts.map((product, index) => (
               <div
-                key={product.id}
+                key={`${product.id}-${index}`}
                 className="group flex-shrink-0 snap-center rounded-3xl border border-white/80 bg-white/90 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
                 style={{
                   scrollSnapAlign: 'center',
@@ -417,10 +374,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
 
           <div className="mt-6 sm:mt-7 lg:mt-8 px-2 sm:px-4">
             <div className="relative h-1.5 sm:h-2 rounded-full bg-white/35 border border-white/50 backdrop-blur-xl overflow-hidden shadow-[0_10px_25px_rgba(15,23,42,0.08)]">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-400 shadow-[0_8px_20px_rgba(99,102,241,0.35)] transition-all duration-500"
-                style={{ width: `${Math.min(Math.max(scrollProgress, 0), 1) * 100}%` }}
-              />
+              <div className="absolute inset-y-0 left-0 right-0 rounded-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-400 shadow-[0_8px_20px_rgba(99,102,241,0.35)]" />
               <div className="absolute inset-0 opacity-50 bg-gradient-to-r from-white/20 via-transparent to-white/20" />
             </div>
           </div>
