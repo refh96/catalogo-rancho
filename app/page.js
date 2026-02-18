@@ -279,17 +279,19 @@ export default function Home() {
   const handleLogoClick = (e) => {
     e.preventDefault();
     setSearchTerm('');
-    setPriceFilter('all');
+    setPriceFilter(100000);
     setLifeStage('all');
     setSortBy('name');
+    setLetterFilter('all');
     window.location.href = '/';
   };
   
   // Estados para búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState('');
-  const [priceFilter, setPriceFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState(100000);
   const [lifeStage, setLifeStage] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const [letterFilter, setLetterFilter] = useState('all');
   const [isListening, setIsListening] = useState(false);
   const [browserSupportsSpeechRecognition, setBrowserSupportsSpeechRecognition] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState(null);
@@ -1041,12 +1043,16 @@ export default function Home() {
     }
 
     // Filtrar por precio
-    if (priceFilter === 'under10k') {
-      result = result.filter(product => product.price < 10000);
-    } else if (priceFilter === '10k-20k') {
-      result = result.filter(product => product.price >= 10000 && product.price <= 20000);
-    } else if (priceFilter === 'over20k') {
-      result = result.filter(product => product.price > 20000);
+    if (priceFilter < 100000) {
+      result = result.filter(product => product.price <= priceFilter);
+    }
+
+    // Filtrar por letra inicial
+    if (letterFilter !== 'all') {
+      result = result.filter(product => {
+        const firstLetter = product.name.charAt(0).toUpperCase();
+        return firstLetter === letterFilter.toUpperCase();
+      });
     }
 
     // Filtrar por etapa de vida
@@ -1085,16 +1091,17 @@ export default function Home() {
     }
 
     return result;
-  }, [products, activeCategory, searchTerm, priceFilter, lifeStage, sortBy]);
+  }, [products, activeCategory, searchTerm, priceFilter, lifeStage, sortBy, letterFilter]);
 
   // Función para manejar el cambio de categoría
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
     // Mantener el término de búsqueda, solo resetear otros filtros
     // setSearchTerm(''); // Comentado para mantener el texto de búsqueda
-    setPriceFilter('all');
+    setPriceFilter(100000);
     setLifeStage('all');
     setSortBy('name');
+    setLetterFilter('all');
   };
 
   const flatProducts = useMemo(() => {
@@ -1397,9 +1404,10 @@ export default function Home() {
     if (foundProduct && foundCategory) {
       setActiveCategory(foundCategory);
       setSearchTerm(foundProduct.name);
-      setPriceFilter('all');
+      setPriceFilter(100000);
       setLifeStage('all');
       setSortBy('name');
+      setLetterFilter('all');
       showAlert(`Producto encontrado: "${foundProduct.name}"`, 'success');
     } else {
       showAlert('No se encontró ningún producto con ese código de barras', 'error');
@@ -1432,8 +1440,23 @@ export default function Home() {
         </div>
       )}
       
-      {/* Header */}
-      <header className="bg-white shadow">
+      {/* Contenedor con imagen de fondo para header y carrusel */}
+      <div className="relative">
+        {/* Imagen de fondo del local */}
+        <div className="absolute inset-0">
+          <img
+            src="https://i.ibb.co/XH7nD58/rancho.jpg"
+            alt="Rancho de Mascotas Hualpén - Nuestro local"
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/30 via-white/40 to-cyan-50/30" />
+        </div>
+        
+        {/* Header */}
+        <header className="bg-white/30 backdrop-blur-sm shadow relative z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <a href="/" onClick={handleLogoClick} className="flex items-center space-x-2 cursor-pointer">
@@ -1461,7 +1484,7 @@ export default function Home() {
                 href="/encuentrenos"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
-                Encuéntrenos
+                Quienes Somos
               </Link>
               <button 
                 onClick={() => setIsCartOpen(true)}
@@ -1495,6 +1518,8 @@ export default function Home() {
       </header>
 
       <FeaturedProductsCarousel onProductSelect={openDetailsModal} />
+      
+      </div> {/* Cierre del contenedor con imagen de fondo */}
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="bg-indigo-700 rounded-lg shadow-xl overflow-hidden mb-6 sm:mb-8 lg:mb-12">
@@ -1532,41 +1557,96 @@ export default function Home() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Nuestros Productos</h2>
           
           {/* Filtros de categoría */}
-          <div className="flex flex-wrap gap-2 sm:flex sm:space-x-4 sm:gap-0 mb-4 overflow-x-auto pb-2">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mb-8">
             <button
-              key="todos"
               onClick={() => handleCategoryChange('todos')}
-              className={`px-3 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`group relative w-24 h-24 sm:w-32 sm:h-32 rounded-full transition-all duration-300 transform hover:scale-110 hover:shadow-xl overflow-hidden border-4 bg-gradient-to-br from-gray-400 to-gray-500 ${
                 activeCategory === 'todos'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  ? 'border-yellow-400 shadow-lg scale-105 from-purple-500 to-indigo-600'
+                  : 'border-transparent hover:border-yellow-300 hover:from-gray-500 hover:to-gray-600'
               }`}
             >
-              Todos
+              <div className="absolute inset-0 rounded-full bg-white/20 group-hover:bg-white/10 transition-colors" />
+              <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
+                <div className="text-2xl sm:text-3xl mb-1">🏪</div>
+                <span className="text-xs sm:text-sm font-semibold">Todos</span>
+              </div>
             </button>
+
             {Object.keys(products || {}).filter(category => 
               ['perros', 'gatos', 'mascotasPequeñas', 'accesorios', 'farmacia'].includes(category)
-            ).map((category) => (
-              <button
-                key={category}
-                onClick={() => handleCategoryChange(category)}
-                className={`px-3 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
-                  (activeCategory === category || (category === 'todos' && activeCategory === 'todos'))
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                }`}
-              >
-                {category === 'perros' && '🐶 Perros'}
-                {category === 'gatos' && '🐱 Gatos'}
-                {category === 'mascotasPequeñas' && '🐹 Mascota Pequeña'}
-                {category === 'accesorios' && '🎾 Accesorios y Juguetes'}
-                {category === 'farmacia' && '💊 Farmacia'}
-              </button>
-            ))}
+            ).map((category) => {
+              const categoryConfig = {
+                perros: {
+                  emoji: '🐶',
+                  label: 'Perros',
+                  bgGradient: 'from-blue-500 to-cyan-600',
+                  activeBgGradient: 'from-red-500 to-red-600',
+                  hoverGradient: 'from-blue-600 to-cyan-700',
+                  image: '/images/dog-section.jpg'
+                },
+                gatos: {
+                  emoji: '🐱',
+                  label: 'Gatos',
+                  bgGradient: 'from-pink-500 to-rose-600',
+                  activeBgGradient: 'from-indigo-500 to-purple-600',
+                  hoverGradient: 'from-pink-600 to-rose-700',
+                  image: '/images/cat-section.jpg'
+                },
+                mascotasPequeñas: {
+                  emoji: '🐹',
+                  label: 'Mascotas Pequeñas',
+                  bgGradient: 'from-green-500 to-emerald-600',
+                  activeBgGradient: 'from-amber-700 to-amber-800',
+                  hoverGradient: 'from-green-600 to-emerald-700',
+                  image: '/images/small-pets-section.jpg'
+                },
+                accesorios: {
+                  emoji: '🎾',
+                  label: 'Accesorios',
+                  bgGradient: 'from-orange-500 to-amber-600',
+                  activeBgGradient: 'from-teal-500 to-cyan-600',
+                  hoverGradient: 'from-orange-600 to-amber-700',
+                  image: '/images/accessories-section.jpg'
+                },
+                farmacia: {
+                  emoji: '💊',
+                  label: 'Farmacia',
+                  bgGradient: 'from-purple-500 to-violet-600',
+                  activeBgGradient: 'from-gray-500 to-slate-600',
+                  hoverGradient: 'from-purple-600 to-violet-700',
+                  image: '/images/pharmacy-section.jpg'
+                }
+              };
+
+              const config = categoryConfig[category];
+              const isActive = activeCategory === category;
+
+              return (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={`group relative w-24 h-24 sm:w-32 sm:h-32 rounded-full transition-all duration-300 transform hover:scale-110 hover:shadow-xl overflow-hidden border-4 bg-gradient-to-br ${
+                    isActive
+                      ? `${config.activeBgGradient} border-yellow-400 shadow-lg scale-105`
+                      : `${config.bgGradient} border-transparent hover:border-yellow-300`
+                  }`}
+                >
+                  <div className="absolute inset-0 rounded-full bg-white/20 group-hover:bg-white/10 transition-colors" />
+                  <div className="absolute inset-0 opacity-30 group-hover:opacity-20 transition-opacity">
+                    <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${config.image})` }} />
+                  </div>
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
+                    <div className="text-2xl sm:text-3xl mb-1 drop-shadow-lg">{config.emoji}</div>
+                    <span className="text-xs sm:text-sm font-semibold drop-shadow">{config.label}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
           
           {/* Barra de búsqueda y filtros */}
-          <div className="mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-100">
+          <div className="mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-100 relative">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
               {/* Buscador */}
               <div className="relative">
@@ -1579,10 +1659,10 @@ export default function Home() {
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Buscar productos..."
+                    placeholder="🔍 Buscar productos..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-9 sm:pl-10 pr-12 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
+                    className="block w-full pl-9 sm:pl-10 pr-12 py-3 border-2 border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base font-medium shadow-sm focus:shadow-md transition-all duration-200 hover:border-gray-400"
                   />
                   {searchTerm && (
                     <button
@@ -1641,43 +1721,186 @@ export default function Home() {
               </div>
               
               {/* Filtro por precio */}
-              <select
-                value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value)}
-                className="block w-full pl-3 pr-8 sm:pr-10 py-2 text-xs sm:text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
-              >
-                <option value="all">Todos los precios</option>
-                <option value="under10k">Menos de $10.000</option>
-                <option value="10k-20k">$10.000 - $20.000</option>
-                <option value="over20k">Más de $20.000</option>
-              </select>
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium text-gray-700">
+                  Precio máximo: ${priceFilter.toLocaleString('es-CL')}
+                </label>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="500"
+                    max="100000"
+                    step="500"
+                    value={priceFilter}
+                    onChange={(e) => setPriceFilter(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #4f46e5 0%, #4f46e5 ${((priceFilter - 500) / (100000 - 500)) * 100}%, #e5e7eb ${((priceFilter - 500) / (100000 - 500)) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>$500</span>
+                    <span>$100.000</span>
+                  </div>
+                </div>
+              </div>
               
               {/* Filtro por etapa de vida */}
-              <select
-                value={lifeStage}
-                onChange={(e) => {
-                  console.log('Cambiando etapa de vida a:', e.target.value);
-                  setLifeStage(e.target.value);
-                }}
-                className="block w-full pl-3 pr-8 sm:pr-10 py-2 text-xs sm:text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
-              >
-                <option value="all">Todas las etapas</option>
-                <option value="cachorro">Cachorro</option>
-                <option value="adulto">Adulto</option>
-                <option value="senior">Senior</option>
-              </select>
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium text-gray-700">Etapa de vida</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('Cambiando etapa de vida a: all');
+                      setLifeStage('all');
+                    }}
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                      lifeStage === 'all'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('Cambiando etapa de vida a: cachorro');
+                      setLifeStage('cachorro');
+                    }}
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                      lifeStage === 'cachorro'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Cachorro
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('Cambiando etapa de vida a: adulto');
+                      setLifeStage('adulto');
+                    }}
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                      lifeStage === 'adulto'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Adulto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('Cambiando etapa de vida a: senior');
+                      setLifeStage('senior');
+                    }}
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                      lifeStage === 'senior'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Senior
+                  </button>
+                </div>
+              </div>
 
-              {/* Ordenar por */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="block w-full pl-3 pr-8 sm:pr-10 py-2 text-xs sm:text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
-              >
-                <option value="name">Ordenar por nombre</option>
-                <option value="price-asc">Precio: menor a mayor</option>
-                <option value="price-desc">Precio: mayor a menor</option>
-              </select>
+              {/* Filtro alfabético */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium text-gray-700">Filtrar por letra</label>
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setLetterFilter('all')}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      letterFilter === 'all'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map(letter => (
+                    <button
+                      key={letter}
+                      type="button"
+                      onClick={() => setLetterFilter(letter)}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                        letterFilter === letter
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ordenar por precio */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium text-gray-700">Ordenar por precio</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSortBy('price-asc')}
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                      sortBy === 'price-asc'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Menor a mayor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSortBy('price-desc')}
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                      sortBy === 'price-desc'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Mayor a menor
+                  </button>
+                </div>
+              </div>
             </div>
+            
+            {/* Botón flotante de reinicio de filtros */}
+            {(searchTerm || priceFilter < 100000 || lifeStage !== 'all' || letterFilter !== 'all' || sortBy !== 'name') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setPriceFilter(100000);
+                  setLifeStage('all');
+                  setLetterFilter('all');
+                  setSortBy('name');
+                }}
+                className="absolute bottom-16 right-2 p-2 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 hover:scale-110"
+                title="Reiniciar todos los filtros"
+                aria-label="Reiniciar todos los filtros"
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-4 w-4" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                  />
+                </svg>
+              </button>
+            )}
             
             {/* Contador de resultados */}
             <div className="mt-3 text-xs sm:text-sm text-gray-500">
@@ -1808,12 +2031,13 @@ export default function Home() {
                 </svg>
                 <h3 className="mt-2 text-base sm:text-lg font-medium text-gray-900">No se encontraron productos</h3>
                 <p className="mt-1 text-xs sm:text-sm text-gray-500">Intenta con otros términos de búsqueda o filtros.</p>
-                {(searchTerm || priceFilter !== 'all') && (
+                {(searchTerm || priceFilter < 100000) && (
                   <button
                     onClick={() => {
                       setSearchTerm('');
-                      setPriceFilter('all');
+                      setPriceFilter(100000);
                       setLifeStage('all');
+                      setLetterFilter('all');
                     }}
                     className="mt-4 inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
@@ -2147,7 +2371,7 @@ export default function Home() {
         </div>
 
       {user && (
-          <div className="fixed bottom-24 sm:bottom-28 right-15 sm:right-19 z-30">
+          <div className="fixed bottom-4 left-4 z-30">
             <button 
               onClick={() => {
                 setEditingProduct(null);
@@ -3121,6 +3345,40 @@ export default function Home() {
       <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       {/* Botón flotante de WhatsApp */}
       <WhatsAppButton />
+      
+      {/* Estilos para el slider */}
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          background: #4f46e5;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .slider::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          background: #4f46e5;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+          background: #4338ca;
+          transform: scale(1.1);
+        }
+        
+        .slider::-moz-range-thumb:hover {
+          background: #4338ca;
+          transform: scale(1.1);
+        }
+      `}</style>
     </div>
   );
 }

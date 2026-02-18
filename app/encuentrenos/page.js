@@ -11,43 +11,43 @@ export default function Encuentrenos() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <a href="/" className="flex items-center space-x-2 cursor-pointer">
               {!headerLogoFailed ? (
                 <Image
                   src="https://i.ibb.co/twMHRJmQ/503853895-17910857019133345-7677598013054732096-n.jpg"
                   alt="Logo Rancho de Mascotas Hualpén"
-                  width={48}
-                  height={48}
+                  width={80}
+                  height={80}
                   unoptimized
-                  className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 object-cover"
+                  className="w-20 h-20 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 object-cover"
                   onError={() => setHeaderLogoFailed(true)}
                 />
               ) : (
-                <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <div className="w-20 h-20 sm:w-10 sm:h-10 rounded-full border-2 border-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                   <span className="text-white text-sm font-bold">RM</span>
                 </div>
               )}
-              <Link href="/" className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
                 Rancho Mascotas Hualpén
-              </Link>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/" className="text-gray-700 hover:text-indigo-600 transition-colors">
+              </h1>
+            </a>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link 
+                href="/"
+                className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
                 Inicio
               </Link>
-              <Link href="/encuentrenos" className="text-indigo-600 font-medium">
-                Encuéntrenos
+              <Link 
+                href="/encuentrenos"
+                className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors border-b-2 border-indigo-600"
+              >
+                Quienes Somos
               </Link>
-            </nav>
-            <Link 
-              href="/"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-            >
-              Volver
-            </Link>
+            </div>
           </div>
         </div>
       </header>

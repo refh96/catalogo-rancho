@@ -112,7 +112,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
     let touchEndX = 0;
     let isScrolling = false;
     let animationId;
-    let scrollSpeed = 15; // píxeles por frame
+    let scrollSpeed = 5; // píxeles por frame
 
     const isMobile = window.innerWidth < 640;
     const cardWidth = isMobile ? 250 : 280;
@@ -279,13 +279,12 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
 
   return (
     <section className="relative py-10 sm:py-14 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 via-white to-cyan-50" />
       <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-white via-white/70 to-transparent pointer-events-none" />
       <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white via-white/70 to-transparent pointer-events-none" />
       <div className="relative container mx-auto px-4">
         <div className="flex flex-col items-center gap-4 text-center">
-          <h2 className="gradient-title mt-2 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-400">
-            Productos destacados
+          <h2 className="gradient-title mt-2 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-500">
+            Productos destac<span className="text-purple-500">ados</span>
           </h2>
         </div>
 
@@ -309,7 +308,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
             {duplicatedProducts.map((product, index) => (
               <div
                 key={`${product.id}-${index}`}
-                className="group flex-shrink-0 snap-center rounded-3xl border border-white/80 bg-white/90 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
+                className="group flex-shrink-0 snap-center rounded-3xl border border-white/40 bg-white/10 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
                 style={{
                   scrollSnapAlign: 'center',
                   flex: '0 0 auto',
