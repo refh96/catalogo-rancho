@@ -51,7 +51,7 @@ export default function CartIcon() {
   
   return (
     <div className={`relative ${isAnimating ? 'animate-wiggle' : ''}`}>
-      <ShoppingCartIcon className="h-6 w-6 text-gray-700" />
+      <ShoppingCartIcon className="h-6 w-6 text-gray-700 cart-icon" />
       {totalItems > 0 && (
         <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
           {totalItems}

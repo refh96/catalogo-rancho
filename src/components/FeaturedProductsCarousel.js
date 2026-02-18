@@ -284,7 +284,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       <div className="relative container mx-auto px-4">
         <div className="flex flex-col items-center gap-4 text-center">
           <h2 className="gradient-title mt-2 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-500">
-            Productos destac<span className="text-purple-500">ados</span>
+            Productos destacados
           </h2>
         </div>
 

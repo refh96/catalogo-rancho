@@ -98,8 +98,8 @@ body {
   }
 
   /* Asegurar íconos oscuros legibles */
-  svg,
-  svg * {
+  svg:not(.whatsapp-icon):not(.cart-icon),
+  svg *:not(.whatsapp-icon *):not(.cart-icon *) {
     color: #111827 !important;
     stroke: #111827 !important;
     fill: #111827 !important;
