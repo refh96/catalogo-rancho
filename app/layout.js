@@ -6,6 +6,7 @@ import { AuthProvider } from '../src/contexts/AuthContext';
 import { ProductProvider } from '../src/contexts/ProductContext';
 import { CartProvider } from '../src/contexts/CartContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
             <ProductProvider>
               <CartProvider>
                 {children}
+                <Analytics />
               </CartProvider>
             </ProductProvider>
           </AuthProvider>
