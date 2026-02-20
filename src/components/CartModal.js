@@ -63,6 +63,38 @@ const getTimeSlotText = (slot) => {
   }
 };
 
+// Funciones de validación
+const validatePhone = (phone) => {
+  // Permitir solo números, +, -, (), y espacios
+  const phoneRegex = /^[+]?[\d\s\-\(\)]+$/;
+  const digitsOnly = phone.replace(/\D/g, '');
+  return phoneRegex.test(phone) && digitsOnly.length >= 8;
+};
+
+const validateAddress = (address) => {
+  // Verificar que haya al menos un número y longitud mínima de 5 caracteres
+  return /\d/.test(address) && address.trim().length >= 5;
+};
+
+const formatPhone = (value) => {
+  // Mantener el + al inicio si existe
+  const hasPlus = value.startsWith('+');
+  const cleaned = value.replace(/\D/g, '');
+  
+  if (hasPlus && cleaned.length > 0) {
+    // Formato con código de país
+    if (cleaned.length <= 2) return `+${cleaned}`;
+    if (cleaned.length <= 6) return `+${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+    if (cleaned.length <= 9) return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 6)} ${cleaned.slice(6)}`;
+    return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 6)} ${cleaned.slice(6, 10)}`;
+  } else {
+    // Formato local sin +
+    if (cleaned.length <= 3) return cleaned;
+    if (cleaned.length <= 7) return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+  }
+};
+
 const BANK_TRANSFER_DETAILS = {
   holder: 'Nicolás Herrera Márquez',
   bank: 'Banco de Chile',
@@ -87,6 +119,7 @@ export default function CartModal({ isOpen, onClose }) {
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showStockAlert, setShowStockAlert] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const [orderDetailsState, setOrderDetailsState] = useState(() => {
     const initialDelivery = getInitialDeliveryOptions();
@@ -190,11 +223,50 @@ export default function CartModal({ isOpen, onClose }) {
     }
   }, [isOpen, cart.length]);
 
+  // Función para validar y mostrar errores
+  const handleInputChange = (field, value) => {
+    let error = '';
+    
+    if (field === 'phone') {
+      // Actualizar directamente sin formateo automático
+      setOrderDetailsState({...orderDetailsState, phone: value});
+      
+      if (value && !validatePhone(value)) {
+        error = 'Ingresa un teléfono válido (mínimo 8 dígitos)';
+      }
+    } else if (field === 'address') {
+      setOrderDetailsState({...orderDetailsState, address: value});
+      
+      if (value && !validateAddress(value)) {
+        error = 'La dirección debe incluir al menos un número (mínimo 5 caracteres)';
+      }
+    } else {
+      setOrderDetailsState({...orderDetailsState, [field]: value});
+    }
+    
+    setValidationErrors({...validationErrors, [field]: error});
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Validaciones antes de enviar
+    const errors = {};
+    
+    if (!validatePhone(orderDetailsState.phone)) {
+      errors.phone = 'Ingresa un teléfono válido (mínimo 8 dígitos)';
+    }
+    
+    if (orderType === 'delivery' && !validateAddress(orderDetailsState.address)) {
+      errors.address = 'La dirección debe incluir al menos un número (mínimo 5 caracteres)';
+    }
+    
     if (orderType === 'delivery' && !orderDetailsState.comuna) {
-      alert('Por favor seleccione una comuna para el envío');
+      errors.comuna = 'Por favor selecciona una comuna para el envío';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
     
@@ -350,13 +422,19 @@ export default function CartModal({ isOpen, onClose }) {
                         Teléfono
                       </label>
                       <input
-                        type="tel"
+                        type="text"
                         required
                         value={orderDetailsState.phone}
-                        onChange={(e) => setOrderDetailsState({...orderDetailsState, phone: e.target.value})}
-                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                        placeholder="Ingresa tu número de teléfono"
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        className={`w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 ${
+                          validationErrors.phone ? 'border-red-500 focus:border-red-500' : ''
+                        }`}
+                        placeholder="Ingresa tu número de teléfono (+56 9 1234 5678)"
+                        inputMode="tel"
                       />
+                      {validationErrors.phone && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                      )}
                     </div>
 
                     {orderType === 'delivery' && (
@@ -368,10 +446,15 @@ export default function CartModal({ isOpen, onClose }) {
                           type="text"
                           required
                           value={orderDetailsState.address}
-                          onChange={(e) => setOrderDetailsState({...orderDetailsState, address: e.target.value})}
-                          className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 mb-2"
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                          className={`w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 mb-2 ${
+                            validationErrors.address ? 'border-red-500 focus:border-red-500' : ''
+                          }`}
                           placeholder="Ingresa tu dirección completa"
                         />
+                        {validationErrors.address && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.address}</p>
+                        )}
                         <div className="mb-2">
                           <p className="text-sm font-medium text-gray-700 mb-1">Comuna:</p>
                           <div className="flex flex-wrap gap-2">
@@ -484,7 +567,7 @@ export default function CartModal({ isOpen, onClose }) {
                         <option value="">Selecciona un método de pago</option>
                         <option value="efectivo">Efectivo al recibir</option>
                         <option value="transferencia">Transferencia bancaria</option>
-                        {orderType === 'delivery' && <option value="tarjeta">Tarjeta de crédito/débito</option>}
+                        <option value="tarjeta">Tarjeta de crédito/débito</option>
                       </select>
                       {orderDetailsState.paymentMethod === 'transferencia' && (
                         <div className="mt-3 p-3 border border-amber-400 bg-amber-50 rounded-lg text-xs text-gray-700 space-y-2">

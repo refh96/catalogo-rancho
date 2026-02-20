@@ -204,7 +204,7 @@ const SOCIAL_SHARE_OPTIONS = [
   },
 ];
 
-const CATALOG_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://catalogo-rancho.vercel.app/';
+const CATALOG_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ranchomascotas.cl/';
 const CATALOG_SHARE_MESSAGE = 'Descubre el catálogo de Rancho Mascotas';
 
 const CATALOG_SOCIAL_LINKS = [
