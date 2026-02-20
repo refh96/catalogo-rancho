@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { useProducts } from '@/contexts/ProductContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
@@ -10,6 +10,63 @@ const getProductAnchorId = (product) => {
   const rawKey = product.id || product.barcode || product.name || 'product';
   return `product-${rawKey.toString().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
 };
+
+const ProductCard = memo(({ product, onProductClick }) => {
+  return (
+    <div
+      className="group flex-shrink-0 snap-center rounded-3xl border border-white/40 bg-white/10 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
+      style={{
+        scrollSnapAlign: 'center',
+        flex: '0 0 auto',
+      }}
+    >
+      <div className="relative mt-4">
+        <Link
+          href={`#${getProductAnchorId(product)}`}
+          scroll={false}
+          onClick={(event) => onProductClick(event, product)}
+          className="block rounded-2xl overflow-hidden"
+        >
+          <div className="relative h-44 w-full" style={{ position: 'relative' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/10 opacity-0 transition group-hover:opacity-100" />
+            {product.image ? (
+              <Image
+                src={product.image}
+                alt={product.name}
+                fill
+                loading="lazy"
+                className="object-cover transition duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 60vw, 30vw"
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400 text-sm">
+                Sin imagen
+              </div>
+            )}
+          </div>
+        </Link>
+      </div>
+      <div className="space-y-3 pt-5">
+        <p className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.4em] text-indigo-600">
+          {product.category || 'General'}
+        </p>
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 line-clamp-2">{product.name}</h3>
+          <p className="text-2xl font-black text-slate-900 mt-1">
+            ${parseInt(product.price || 0).toLocaleString('es-CL')}
+          </p>
+        </div>
+        <p className="text-xs text-slate-500 line-clamp-2">
+          Toca para abrir detalles y agregar rápidamente al carrito.
+        </p>
+      </div>
+    </div>
+  );
+});
+
+ProductCard.displayName = 'ProductCard';
 
 const FeaturedProductsCarousel = ({ onProductSelect }) => {
   const { user } = useAuth();
@@ -306,68 +363,11 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
             }}
           >
             {duplicatedProducts.map((product, index) => (
-              <div
+              <ProductCard
                 key={`${product.id}-${index}`}
-                className="group flex-shrink-0 snap-center rounded-3xl border border-white/40 bg-white/10 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
-                style={{
-                  scrollSnapAlign: 'center',
-                  flex: '0 0 auto',
-                }}
-              >
-                <div className="relative mt-4">
-                  <Link
-                    href={`#${getProductAnchorId(product)}`}
-                    scroll={false}
-                    onClick={(event) => handleProductClick(event, product)}
-                    className="block rounded-2xl overflow-hidden"
-                  >
-                    <div className="relative h-44 w-full">
-                      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/10 opacity-0 transition group-hover:opacity-100" />
-                      {product.image ? (
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover transition duration-500 group-hover:scale-105"
-                          sizes="(max-width: 768px) 60vw, 30vw"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400 text-sm">
-                          Sin imagen
-                        </div>
-                      )}
-                    </div>
-                  </Link>
-                </div>
-                <div className="space-y-3 pt-5">
-                  <p className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.4em] text-indigo-600">
-                    {product.category || 'General'}
-                  </p>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 line-clamp-2">{product.name}</h3>
-                    <p className="text-2xl font-black text-slate-900 mt-1">
-                      ${parseInt(product.price || 0).toLocaleString('es-CL')}
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-500 line-clamp-2">
-                    Toca para abrir detalles y agregar rápidamente al carrito.
-                  </p>
-                </div>
-                {isAdmin && (
-                  <div className="mt-4 border-t border-slate-100 pt-3">
-                    <button
-                      disabled={processingId === product.id}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleRemoveFromCarousel(product);
-                      }}
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-60"
-                    >
-                      {processingId === product.id ? 'Actualizando…' : 'Quitar de destacados'}
-                    </button>
-                  </div>
-                )}
-              </div>
+                product={product}
+                onProductClick={handleProductClick}
+              />
             ))}
           </div>
 

@@ -168,21 +168,23 @@ const getProductAnchorId = (product) => {
     getProductCardKey(product) ??
     product?.name ??
     product?.barcode ??
-    product?.id ??
-    'producto';
-
-  const sanitizedKey = rawKey
-    .toString()
+    '';
+  return rawKey
     .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9_-]/g, '');
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
 
-  if (!sanitizedKey) {
-    return 'product-card';
-  }
+const getProductSlug = (product) => {
+  return product.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
 
-  return `product-card-${sanitizedKey}`;
+const navigateToProduct = (product) => {
+  const slug = getProductSlug(product);
+  window.location.href = `/producto/${slug}`;
 };
 
 const SOCIAL_SHARE_OPTIONS = [
@@ -1269,8 +1271,8 @@ export default function Home() {
     // Mostrar notificación
     showAlert(`¡${product.name} se ha añadido al carrito!`, 'success');
     
-    // Registrar métrica
-    recordCartMetric(product);
+    // Registrar métrica (desactivado temporalmente)
+    // recordCartMetric(product);
   };
 
   const handleAddWithAnimation = (product, e) => {
@@ -1517,7 +1519,7 @@ export default function Home() {
         </div>
       </header>
 
-      <FeaturedProductsCarousel onProductSelect={openDetailsModal} />
+      <FeaturedProductsCarousel onProductSelect={navigateToProduct} />
       
       </div> {/* Cierre del contenedor con imagen de fondo */}
 
@@ -2098,11 +2100,15 @@ export default function Home() {
                     <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                       {product.image ? (
                         <div className="relative w-full h-full">
-                          <Image
-                            src={product.image}
-                            alt={product.name}
-                            fill
-                            unoptimized
+                          <button
+                            onClick={() => navigateToProduct(product)}
+                            className="w-full h-full flex items-center justify-center p-2 sm:p-4 hover:opacity-80 transition-opacity"
+                          >
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              unoptimized
                             className="object-contain"
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             onError={(event) => {
@@ -2111,6 +2117,7 @@ export default function Home() {
                               target.src = 'https://via.placeholder.com/150?text=Sin+imagen';
                             }}
                           />
+                          </button>
                         </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-slate-800">
@@ -2286,7 +2293,7 @@ export default function Home() {
                           <p className="text-[12px] font-semibold mb-2">{detailCardLabel}</p>
                           <button
                             type="button"
-                            onClick={() => openDetailsModal(product)}
+                            onClick={() => navigateToProduct(product)}
                             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white dark:text-white btn-text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
                           >
                             <span className="btn-text-white-text">Ver detalles completos</span>
@@ -2545,7 +2552,7 @@ export default function Home() {
                 ) : (
                   // Sección para otros productos (composición, análisis, guía de alimentación)
                   <>
-                    {selectedProductDetails.details.analysis?.length > 0 && (
+                    {(!selectedProductDetails.name.toLowerCase().includes('arena')) && selectedProductDetails.details.analysis?.length > 0 && (
                       <section>
                         <div className="mb-3 flex items-center gap-2">
                           <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
@@ -2573,7 +2580,7 @@ export default function Home() {
                       </section>
                     )}
 
-                    {selectedProductDetails.details.composition?.trim() && (
+                    {(!selectedProductDetails.name.toLowerCase().includes('arena')) && selectedProductDetails.details.composition?.trim() && (
                       <section>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Composición</p>
                         <div className="mt-2 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4">
@@ -2597,7 +2604,7 @@ export default function Home() {
                       </section>
                     )}
 
-                    {hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
+                    {(!selectedProductDetails.name.toLowerCase().includes('arena')) && hasFeedingGuideTableData(selectedProductDetails.details.feedingGuideTable) && (
                       <section>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Guía de ración diaria</p>
                         <div className="mt-2 overflow-x-auto rounded-2xl border border-gray-100 bg-white">

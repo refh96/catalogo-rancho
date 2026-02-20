@@ -1,91 +1,72 @@
-// src/components/CartModal.js
 'use client';
 import React, { useState } from 'react';
-import Image from 'next/image';
-import { useCart } from '../contexts/CartContext';
+import { useCart } from '@/contexts/CartContext';
 import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 
+// Funciones de fecha
 const formatDateKey = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return date.toISOString().split('T')[0];
 };
 
-const getInitialDeliveryOptions = () => {
-  const now = new Date();
-  let deliveryDate = new Date(now);
-  const dayOfWeek = deliveryDate.getDay();
-  if (dayOfWeek === 0) {
-    deliveryDate.setDate(deliveryDate.getDate() + 1);
+const formatDeliveryDayForMessage = (dateKey) => {
+  const date = new Date(dateKey + 'T00:00:00');
+  const options = { weekday: 'long', day: 'numeric', month: 'long' };
+  return date.toLocaleDateString('es-CL', options);
+};
+
+const formatDeliveryDayOptionLabel = (date) => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  if (date.toDateString() === today.toDateString()) {
+    return 'Hoy';
+  } else if (date.toDateString() === tomorrow.toDateString()) {
+    return 'Mañana';
+  } else {
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    return date.toLocaleDateString('es-CL', options);
   }
-  const isBeforeMiddaySlot = now.getHours() < 12 || (now.getHours() === 12 && now.getMinutes() < 30);
-  const deliveryTimeSlot = isBeforeMiddaySlot ? 'morning' : 'afternoon';
-  return {
-    deliveryDay: formatDateKey(deliveryDate),
-    deliveryTimeSlot,
-  };
 };
 
 const getAvailableDeliveryDays = () => {
   const days = [];
   const today = new Date();
-  for (let i = 0; i < 7; i++) {
+  today.setHours(0, 0, 0, 0);
+  
+  for (let i = 0; i < 6; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
-    if (date.getDay() === 0) {
-      continue;
+    
+    // Omitir domingo
+    if (date.getDay() !== 0) {
+      days.push(date);
     }
-    days.push(date);
   }
+  
   return days;
 };
 
-const formatDeliveryDayOptionLabel = (date) => {
-  const today = new Date();
-  const isToday =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-  const formatter = new Intl.DateTimeFormat('es-CL', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-  });
-  const formatted = formatter.format(date);
-  if (isToday) {
-    return `Hoy - ${formatted}`;
-  }
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-};
-
-const formatDeliveryDayForMessage = (deliveryDay) => {
-  if (!deliveryDay) return '';
-  const [year, month, day] = deliveryDay.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const formatter = new Intl.DateTimeFormat('es-CL', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-  });
-  const formatted = formatter.format(date);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+const getInitialDeliveryOptions = () => {
+  const availableDays = getAvailableDeliveryDays();
+  return {
+    deliveryDay: formatDateKey(availableDays[0]),
+    deliveryTimeSlot: 'morning'
+  };
 };
 
 const getTimeSlotText = (slot) => {
-  if (slot === 'morning') {
-    return 'Mañana (12:30 - 14:30)';
+  switch(slot) {
+    case 'morning': return '12:30 - 14:30';
+    case 'afternoon': return '19:00 - 21:00';
+    default: return '';
   }
-  if (slot === 'afternoon') {
-    return 'Tarde (19:00 - 21:00)';
-  }
-  return '';
 };
 
 const BANK_TRANSFER_DETAILS = {
-  holder: 'MINIMARKET NELSON HERRERA MUNOZ EIRL',
-  bank: 'Banco Estado',
-  rut: '76.880.605-5',
+  holder: 'Nicolás Herrera Márquez',
+  bank: 'Banco de Chile',
+  rut: '19.934.017-0',
   accountType: 'Chequera electrónica / Cuenta vista',
   accountNumber: '53570083968',
   email: 'ndherreram@gmail.com'
@@ -115,8 +96,8 @@ export default function CartModal({ isOpen, onClose }) {
       address: '',
       notes: '',
       orderType: 'delivery',
-      paymentMethod: 'efectivo', // Valor por defecto para evitar que el usuario no seleccione nada
-      comuna: '', // Nueva propiedad para almacenar la comuna seleccionada
+      paymentMethod: 'efectivo',
+      comuna: '',
       deliveryDay: initialDelivery.deliveryDay,
       deliveryTimeSlot: initialDelivery.deliveryTimeSlot,
     };
@@ -133,12 +114,10 @@ export default function CartModal({ isOpen, onClose }) {
   const isAfternoonSlotDisabled = isTodaySelected && isAfterSevenThirtyPM;
 
   const sendWhatsAppMessage = (order) => {
-    // Formatear los productos del carrito
     const productsText = cart.map(item => 
       `- ${item.quantity}x ${item.name} - $${item.price.toLocaleString('es-CL')} c/u`
     ).join('%0A');
     
-    // Formatear los detalles del pedido
     const orderTypeText = order.orderType === 'delivery' ? 'Envío a domicilio' : 'Retiro en tienda';
     const comunaText = order.comuna ? ` (${order.comuna.charAt(0).toUpperCase() + order.comuna.slice(1)})` : '';
     const addressText = order.orderType === 'delivery' 
@@ -161,10 +140,8 @@ export default function CartModal({ isOpen, onClose }) {
     const nameText = order.name ? `%0A*Nombre:* ${order.name}` : '';
     const phoneText = order.phone ? `%0A*Teléfono:* ${order.phone}` : '';
     
-    // Calcular subtotal
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // Calcular costo de envío
     let shippingCost = 0;
     let shippingMessage = '';
 
@@ -184,7 +161,6 @@ export default function CartModal({ isOpen, onClose }) {
     
     const total = subtotal + shippingCost;
     
-    // Crear mensaje
     const message = `*Nuevo Pedido de Rancho Mascotas Hualpén*%0A%0A` +
                    `*Tipo de pedido:* ${orderTypeText}` +
                    `${deliveryDayText}${deliveryTimeSlotText}` +
@@ -196,7 +172,6 @@ export default function CartModal({ isOpen, onClose }) {
                    `${order.orderType === 'delivery' ? shippingMessage : ''}` +
                    `*Total:* $${total.toLocaleString('es-CL')}%0A%0A`;
     
-    // Abrir WhatsApp Web con el mensaje prellenado
     window.open(`https://wa.me/56923708742?text=${message}`, '_blank');
   };
 
@@ -209,57 +184,25 @@ export default function CartModal({ isOpen, onClose }) {
     }
   };
 
-  // Mensaje de stock visible al abrir el carrito
   React.useEffect(() => {
     if (isOpen && cart.length > 0) {
-      console.log('Mostrando mensaje de stock al abrir carrito');
       setShowStockAlert(true);
     }
   }, [isOpen, cart.length]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Validar que se haya seleccionado una comuna si es envío
+    
     if (orderType === 'delivery' && !orderDetailsState.comuna) {
       alert('Por favor seleccione una comuna para el envío');
       return;
     }
-    const submitNow = new Date();
-    const submitTodayKey = formatDateKey(submitNow);
-    const isAfterOnePMAtSubmit =
-      submitNow.getHours() > 13 || (submitNow.getHours() === 13 && submitNow.getMinutes() > 0);
-    const isTodaySelectedAtSubmit = orderDetailsState.deliveryDay === submitTodayKey;
-    const isMorningSlotDisabledAtSubmit = isTodaySelectedAtSubmit && isAfterOnePMAtSubmit;
-    const isAfterSevenThirtyPMAtSubmit =
-      submitNow.getHours() > 19 || (submitNow.getHours() === 19 && submitNow.getMinutes() > 30);
-    const isAfternoonSlotDisabledAtSubmit = isTodaySelectedAtSubmit && isAfterSevenThirtyPMAtSubmit;
-
-    if (
-      orderType === 'delivery' &&
-      isMorningSlotDisabledAtSubmit &&
-      orderDetailsState.deliveryTimeSlot === 'morning'
-    ) {
-      alert(
-        'El horario de mañana (12:30 - 14:30) ya no está disponible para hoy. Por favor selecciona el horario de la tarde o cambia el día de entrega.'
-      );
-      return;
-    }
-    if (
-      orderType === 'delivery' &&
-      isAfternoonSlotDisabledAtSubmit &&
-      orderDetailsState.deliveryTimeSlot === 'afternoon'
-    ) {
-      alert(
-        'El horario de tarde (19:00 - 21:00) ya no está disponible para hoy. Por favor selecciona un día de entrega siguiente.'
-      );
-      return;
-    }
-    // Combinar los detalles del pedido con el tipo de pedido actual
+    
     const orderData = {
       ...orderDetailsState,
       orderType
     };
-    // Enviar pedido a través de WhatsApp
+    
     sendWhatsAppMessage(orderData);
     onClose();
   };
@@ -276,7 +219,6 @@ export default function CartModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Mensaje de confirmación de stock */}
         {showStockAlert && (
           <div className="bg-amber-50 border border-amber-200 p-3 mx-4 mt-4 rounded-lg">
             <div className="flex items-start space-x-2">
@@ -302,19 +244,12 @@ export default function CartModal({ isOpen, onClose }) {
                 {cart.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-2 border-b">
                     <div className="flex items-center space-x-4">
-                      <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-white border border-gray-200 relative">
-                        <Image 
+                      <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-white border border-gray-200 relative" style={{ position: 'relative' }}>
+                        <img 
                           src={item.image || 'https://via.placeholder.com/80?text=Sin+imagen'} 
                           alt={item.name} 
-                          fill
-                          unoptimized
-                          className="object-contain p-1"
-                          sizes="80px"
-                          onError={(event) => {
-                            const target = event.currentTarget;
-                            target.onerror = null;
-                            target.src = 'https://via.placeholder.com/80?text=Sin+imagen';
-                          }}
+                          className="w-full h-full object-contain p-1"
+                          loading="lazy"
                         />
                       </div>
                       <div>
@@ -562,7 +497,7 @@ export default function CartModal({ isOpen, onClose }) {
                             <p>{BANK_TRANSFER_DETAILS.accountNumber}</p>
                             <p>{BANK_TRANSFER_DETAILS.email}</p>
                           </div>
-                          <div className="flex items-start space-x-2 text-amber-900">
+                          <div className="flex items-start space-x-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 mt-[2px]" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 9a1 1 0 112 0v5a1 1 0 11-2 0V9zm1-4a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clipRule="evenodd" />
                             </svg>
@@ -574,22 +509,45 @@ export default function CartModal({ isOpen, onClose }) {
                       )}
                     </div>
 
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Notas adicionales (opcional)
+                      </label>
+                      <textarea
+                        value={orderDetailsState.notes}
+                        onChange={(e) => setOrderDetailsState({...orderDetailsState, notes: e.target.value})}
+                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        rows={3}
+                        placeholder="Alguna instrucción especial para tu pedido..."
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex justify-end space-x-4 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setIsCheckingOut(false)}
-                      className="px-4 py-2 border rounded-lg text-black font-medium hover:bg-gray-100 border-gray-300"
-                    >
-                      Volver al carrito
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
-                    >
-                      Confirmar pedido
-                    </button>
+                  <div className="mt-6 border-t pt-4">
+                    <div className="flex justify-between text-lg font-bold text-black">
+                      <span className="text-black">Total:</span>
+                      <span className="text-black">${subtotal.toLocaleString()}</span>
+                    </div>
+                    {orderType === 'delivery' && (
+                      <div className="text-sm text-gray-600 text-center mt-2">
+                        * Envío gratis en Hualpén para pedidos sobre $15.000
+                      </div>
+                    )}
+                    <div className="flex space-x-3 mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setIsCheckingOut(false)}
+                        className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Volver al carrito
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 bg-amber-500 text-white py-2 px-4 rounded-lg hover:bg-amber-600 transition-colors"
+                      >
+                        Enviar pedido por WhatsApp
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

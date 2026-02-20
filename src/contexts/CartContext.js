@@ -78,6 +78,10 @@ export function CartProvider({ children }) {
     });
   };
 
+  const isInCart = (product) => {
+    return cart.some(item => item.id === product.id);
+  };
+
   const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
 
@@ -93,6 +97,7 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        isInCart,
         totalItems,
         subtotal,
       }}

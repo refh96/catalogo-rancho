@@ -120,12 +120,26 @@ export function ProductProvider({ children }) {
     }
   };
 
+  const getProductBySlug = (slug) => {
+    // Buscar producto por slug en todas las categorías
+    const allProducts = Object.values(products).flat();
+    return allProducts.find(product => {
+      // Crear slug a partir del nombre del producto
+      const productSlug = product.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      return productSlug === slug;
+    });
+  };
+
   return (
     <ProductContext.Provider value={{ 
       products, 
       addProduct, 
       updateProduct, 
       deleteProduct,
+      getProductBySlug,
       loading
     }}>
       {children}
