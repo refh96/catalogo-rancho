@@ -1564,8 +1564,8 @@ export default function Home() {
               onClick={() => handleCategoryChange('todos')}
               className={`group relative w-24 h-24 sm:w-32 sm:h-32 rounded-full transition-all duration-300 transform hover:scale-110 hover:shadow-xl overflow-hidden border-4 bg-gradient-to-br from-gray-400 to-gray-500 ${
                 activeCategory === 'todos'
-                  ? 'border-yellow-400 shadow-lg scale-105 from-purple-500 to-indigo-600'
-                  : 'border-transparent hover:border-yellow-300 hover:from-gray-500 hover:to-gray-600'
+                  ? 'border-yellow-400 shadow-lg scale-105'
+                  : 'border-transparent hover:border-yellow-300'
               }`}
             >
               <div className="absolute inset-0 rounded-full bg-white/20 group-hover:bg-white/10 transition-colors" />
@@ -1630,7 +1630,7 @@ export default function Home() {
                   onClick={() => handleCategoryChange(category)}
                   className={`group relative w-24 h-24 sm:w-32 sm:h-32 rounded-full transition-all duration-300 transform hover:scale-110 hover:shadow-xl overflow-hidden border-4 bg-gradient-to-br ${
                     isActive
-                      ? `${config.activeBgGradient} border-yellow-400 shadow-lg scale-105`
+                      ? `${config.bgGradient} border-yellow-400 shadow-lg scale-105`
                       : `${config.bgGradient} border-transparent hover:border-yellow-300`
                   }`}
                 >

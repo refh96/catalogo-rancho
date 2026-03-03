@@ -139,9 +139,9 @@ export default function CartModal({ isOpen, onClose }) {
   const now = new Date();
   const todayKey = formatDateKey(now);
   const isAfterOnePM =
-    now.getHours() > 13 || (now.getHours() === 13 && now.getMinutes() > 0);
+    now.getHours() > 12 || (now.getHours() === 12 && now.getMinutes() > 30);
   const isAfterSevenThirtyPM =
-    now.getHours() > 19 || (now.getHours() === 19 && now.getMinutes() > 30);
+    now.getHours() > 19 || (now.getHours() === 19 && now.getMinutes() > 0);
   const isTodaySelected = orderDetailsState.deliveryDay === todayKey;
   const isMorningSlotDisabled = isTodaySelected && isAfterOnePM;
   const isAfternoonSlotDisabled = isTodaySelected && isAfterSevenThirtyPM;
@@ -404,65 +404,99 @@ export default function CartModal({ isOpen, onClose }) {
                   <h3 className="text-lg font-medium">Datos de contacto</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Nombre completo
                       </label>
-                      <input
-                        type="text"
-                        required
-                        value={orderDetailsState.name}
-                        onChange={(e) => setOrderDetailsState({...orderDetailsState, name: e.target.value})}
-                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                        placeholder="Ingresa tu nombre completo"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={orderDetailsState.name}
+                          onChange={(e) => setOrderDetailsState({...orderDetailsState, name: e.target.value})}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                          placeholder="Ingresa tu nombre"
+                        />
+                      </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Teléfono
                       </label>
-                      <input
-                        type="text"
-                        required
-                        value={orderDetailsState.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className={`w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 ${
-                          validationErrors.phone ? 'border-red-500 focus:border-red-500' : ''
-                        }`}
-                        placeholder="Ingresa tu número de teléfono (+56 9 1234 5678)"
-                        inputMode="tel"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={orderDetailsState.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 ${
+                            validationErrors.phone ? 'border-red-400 focus:ring-red-500' : 'border-gray-200'
+                          }`}
+                          placeholder="Ingresa tu número de teléfono"
+                          inputMode="tel"
+                        />
+                      </div>
                       {validationErrors.phone && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                        <p className="mt-2 text-sm text-red-600 flex items-center">
+                          <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          {validationErrors.phone}
+                        </p>
                       )}
                     </div>
 
                     {orderType === 'delivery' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Dirección de envío
                         </label>
-                        <input
-                          type="text"
-                          required
-                          value={orderDetailsState.address}
-                          onChange={(e) => handleInputChange('address', e.target.value)}
-                          className={`w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 mb-2 ${
-                            validationErrors.address ? 'border-red-500 focus:border-red-500' : ''
-                          }`}
-                          placeholder="Ingresa tu dirección completa"
-                        />
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            required
+                            value={orderDetailsState.address}
+                            onChange={(e) => handleInputChange('address', e.target.value)}
+                            className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 mb-3 ${
+                              validationErrors.address ? 'border-red-400 focus:ring-red-500' : 'border-gray-200'
+                            }`}
+                            placeholder="Ingresa tu dirección "
+                          />
+                        </div>
                         {validationErrors.address && (
-                          <p className="text-red-500 text-xs mt-1">{validationErrors.address}</p>
+                          <p className="mt-2 text-sm text-red-600 flex items-center">
+                            <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            {validationErrors.address}
+                          </p>
                         )}
-                        <div className="mb-2">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Comuna:</p>
+                        <div className="mb-4">
+                          <p className="text-sm font-semibold text-gray-700 mb-3">Comuna:</p>
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() => setOrderDetailsState({...orderDetailsState, comuna: 'hualpen'})}
-                              className={`px-3 py-1 text-sm border rounded font-medium ${
-                                orderDetailsState.comuna === 'hualpen' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                              className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                                orderDetailsState.comuna === 'hualpen' 
+                                  ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm' 
+                                  : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                               }`}
                             >
                               Hualpén
@@ -470,8 +504,10 @@ export default function CartModal({ isOpen, onClose }) {
                             <button
                               type="button"
                               onClick={() => setOrderDetailsState({...orderDetailsState, comuna: 'concepcion'})}
-                              className={`px-3 py-1 text-sm border rounded font-medium ${
-                                orderDetailsState.comuna === 'concepcion' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                              className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                                orderDetailsState.comuna === 'concepcion' 
+                                  ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm' 
+                                  : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                               }`}
                             >
                               Concepción
@@ -479,75 +515,13 @@ export default function CartModal({ isOpen, onClose }) {
                             <button
                               type="button"
                               onClick={() => setOrderDetailsState({...orderDetailsState, comuna: 'talcahuano'})}
-                              className={`px-3 py-1 text-sm border rounded font-medium ${
-                                orderDetailsState.comuna === 'talcahuano' ? 'bg-amber-100 border-amber-500 text-black' : 'bg-white border-gray-300 text-black hover:bg-gray-50'
+                              className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                                orderDetailsState.comuna === 'talcahuano' 
+                                  ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm' 
+                                  : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                               }`}
                             >
                               Talcahuano
-                            </button>
-                          </div>
-                        </div>
-                        <div className="mb-2">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Día de entrega:</p>
-                          <p className="text-sm font-medium text-gray-700 mb-1">(Lunes a Sábado)</p>
-                          <select
-                            required
-                            value={orderDetailsState.deliveryDay}
-                            onChange={(e) => setOrderDetailsState({...orderDetailsState, deliveryDay: e.target.value})}
-                            className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                          >
-                            {getAvailableDeliveryDays().map((date) => {
-                              const value = formatDateKey(date);
-                              return (
-                                <option key={value} value={value}>
-                                  {formatDeliveryDayOptionLabel(date)}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                        <div className="mb-2">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Horario de entrega:</p>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (isMorningSlotDisabled) return;
-                                setOrderDetailsState({
-                                  ...orderDetailsState,
-                                  deliveryTimeSlot: 'morning',
-                                });
-                              }}
-                              disabled={isMorningSlotDisabled}
-                              className={`px-3 py-1 text-sm border rounded font-medium ${
-                                isMorningSlotDisabled
-                                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
-                                  : orderDetailsState.deliveryTimeSlot === 'morning'
-                                  ? 'bg-amber-100 border-amber-500 text-black'
-                                  : 'bg-white border-gray-300 text-black hover:bg-gray-50'
-                              }`}
-                            >
-                              Mañana (12:30 - 14:30)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (isAfternoonSlotDisabled) return;
-                                setOrderDetailsState({
-                                  ...orderDetailsState,
-                                  deliveryTimeSlot: 'afternoon',
-                                });
-                              }}
-                              disabled={isAfternoonSlotDisabled}
-                              className={`px-3 py-1 text-sm border rounded font-medium ${
-                                isAfternoonSlotDisabled
-                                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
-                                  : orderDetailsState.deliveryTimeSlot === 'afternoon'
-                                  ? 'bg-amber-100 border-amber-500 text-black'
-                                  : 'bg-white border-gray-300 text-black hover:bg-gray-50'
-                              }`}
-                            >
-                              Tarde (19:00 - 21:00)
                             </button>
                           </div>
                         </div>
@@ -555,19 +529,96 @@ export default function CartModal({ isOpen, onClose }) {
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Día de entrega
+                      </label>
+                      <select
+                        required
+                        value={orderDetailsState.deliveryDay}
+                        onChange={(e) => setOrderDetailsState({...orderDetailsState, deliveryDay: e.target.value})}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                      >
+                        {getAvailableDeliveryDays().map((date) => {
+                          const value = formatDateKey(date);
+                          return (
+                            <option key={value} value={value}>
+                              {formatDeliveryDayOptionLabel(date)}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-sm font-semibold text-gray-700 mb-3">Horario de entrega:</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isMorningSlotDisabled) return;
+                            setOrderDetailsState({
+                              ...orderDetailsState,
+                              deliveryTimeSlot: 'morning',
+                            });
+                          }}
+                          disabled={isMorningSlotDisabled}
+                          className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                            isMorningSlotDisabled
+                              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
+                              : orderDetailsState.deliveryTimeSlot === 'morning'
+                              ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Mañana (12:30 - 14:30)
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isAfternoonSlotDisabled) return;
+                            setOrderDetailsState({
+                              ...orderDetailsState,
+                              deliveryTimeSlot: 'afternoon',
+                            });
+                          }}
+                          disabled={isAfternoonSlotDisabled}
+                          className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                            isAfternoonSlotDisabled
+                              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
+                              : orderDetailsState.deliveryTimeSlot === 'afternoon'
+                              ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Tarde (19:00 - 21:00)
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Método de pago
                       </label>
                       <select
                         required
                         value={orderDetailsState.paymentMethod}
                         onChange={(e) => setOrderDetailsState({...orderDetailsState, paymentMethod: e.target.value})}
-                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
                       >
                         <option value="">Selecciona un método de pago</option>
-                        <option value="efectivo">Efectivo al recibir</option>
-                        <option value="transferencia">Transferencia bancaria</option>
-                        <option value="tarjeta">Tarjeta de crédito/débito</option>
+                        <option value="efectivo">💵 Efectivo al recibir</option>
+                        <option value="transferencia">🏦 Transferencia bancaria</option>
+                        <option value="tarjeta">💳 Tarjeta de crédito/débito</option>
                       </select>
                       {orderDetailsState.paymentMethod === 'transferencia' && (
                         <div className="mt-3 p-3 border border-amber-400 bg-amber-50 rounded-lg text-xs text-gray-700 space-y-2">
@@ -593,16 +644,23 @@ export default function CartModal({ isOpen, onClose }) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Notas adicionales (opcional)
                       </label>
-                      <textarea
-                        value={orderDetailsState.notes}
-                        onChange={(e) => setOrderDetailsState({...orderDetailsState, notes: e.target.value})}
-                        className="w-full p-2 border rounded text-black bg-white border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                        rows={3}
-                        placeholder="Alguna instrucción especial para tu pedido..."
-                      />
+                      <div className="relative">
+                        <div className="absolute top-3 left-3 pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                        <textarea
+                          value={orderDetailsState.notes}
+                          onChange={(e) => setOrderDetailsState({...orderDetailsState, notes: e.target.value})}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 resize-none"
+                          rows={3}
+                          placeholder="Alguna instrucción especial para tu pedido..."
+                        />
+                      </div>
                     </div>
                   </div>
 

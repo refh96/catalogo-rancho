@@ -354,7 +354,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
         <div className="relative mt-8">
           <div
             ref={scrollRef}
-            className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0"
+            className="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0"
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollBehavior: 'smooth',

@@ -7,7 +7,7 @@ import { useCart } from '../../../src/contexts/CartContext';
 import { useProducts } from '../../../src/contexts/ProductContext';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import CartIcon from '../../../src/components/CartIcon';
-import WhatsAppButton from '../../../src/components/WhatsAppButton';
+import CartModal from '../../../src/components/CartModal';
 
 export default function ProductoPage({ params }) {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function ProductoPage({ params }) {
   const { getProductBySlug, products } = useProducts();
   const { user } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   
   useEffect(() => {
     const loadProduct = async () => {
@@ -88,7 +89,7 @@ export default function ProductoPage({ params }) {
                 Quienes Somos
               </Link>
               <button 
-                onClick={() => router.push('/')}
+                onClick={() => setIsCartOpen(true)}
                 className="relative p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
                 aria-label="Carrito de compras"
               >
@@ -414,7 +415,7 @@ export default function ProductoPage({ params }) {
               <button
                 onClick={handleAddToCart}
                 disabled={selectedProduct.stock === 0 || isInCart(selectedProduct)}
-                className={`w-full py-3 px-6 rounded-md font-semibold text-white transition-colors ${
+                className={`btn-text-white w-full py-3 px-6 rounded-md font-semibold text-white transition-colors ${
                   selectedProduct.stock === 0
                     ? 'bg-gray-400 cursor-not-allowed'
                     : isInCart(selectedProduct)
@@ -441,8 +442,8 @@ export default function ProductoPage({ params }) {
         </div>
       </main>
 
-      {/* Botón flotante de WhatsApp */}
-      <WhatsAppButton />
+      {/* Modal del carrito */}
+      <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }
