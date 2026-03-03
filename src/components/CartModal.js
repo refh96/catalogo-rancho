@@ -96,9 +96,9 @@ const formatPhone = (value) => {
 };
 
 const BANK_TRANSFER_DETAILS = {
-  holder: 'Nicolás Herrera Márquez',
-  bank: 'Banco de Chile',
-  rut: '19.934.017-0',
+  holder: 'Minimarket Nelson Herrera Muñoz Eirl',
+  bank: 'Banco estado',
+  rut: '76.880.605-5',
   accountType: 'Chequera electrónica / Cuenta vista',
   accountNumber: '53570083968',
   email: 'ndherreram@gmail.com'
