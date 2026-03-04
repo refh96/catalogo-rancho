@@ -12,6 +12,7 @@ import FloatingCartButton from '../src/components/FloatingCartButton';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
 import TextScannerModal from '../src/components/TextScannerModal';
 import dynamic from 'next/dynamic';
+import { useVercelAnalytics } from '../src/hooks/useVercelAnalytics';
 
 const FeaturedProductsCarousel = dynamic(
   () => import('@/components/FeaturedProductsCarousel'),
@@ -260,12 +261,14 @@ const CATALOG_SOCIAL_LINKS = [
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
+  const { realTimeData } = useVercelAnalytics();
   const isAdmin = user?.role === 'admin';
   const [activeCategory, setActiveCategory] = useState('todos'); // Valor por defecto 'todos'
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [headerLogoFailed, setHeaderLogoFailed] = useState(false);
   const [formData, setFormData] = useState(() => createEmptyFormData('perros'));
+  const [priceDisplayValue, setPriceDisplayValue] = useState('');
   const [loginData, setLoginData] = useState({
     username: '',
     password: ''
@@ -302,7 +305,6 @@ export default function Home() {
   const [showTextScanner, setShowTextScanner] = useState(false);
   const [textScannerTarget, setTextScannerTarget] = useState(null);
   // Visitor counter removed
-  const [cartMetrics, setCartMetrics] = useState([]);
   const [expandedCompositions, setExpandedCompositions] = useState({});
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   const [featuredProcessingId, setFeaturedProcessingId] = useState(null);
@@ -942,31 +944,6 @@ export default function Home() {
 
   // Visitor counter functionality removed
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadCartMetrics = async () => {
-      try {
-        const response = await fetch('/api/cart-metrics');
-        if (!response.ok) {
-          throw new Error('Failed to load cart metrics');
-        }
-        const data = await response.json();
-        if (isMounted) {
-          setCartMetrics(data.metrics || []);
-        }
-      } catch (error) {
-        console.error('Error cargando las métricas del carrito:', error);
-      }
-    };
-
-    loadCartMetrics();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   const clearSearchTerm = () => {
     setSearchTerm('');
     if (searchInputRef.current) {
@@ -1114,92 +1091,6 @@ export default function Home() {
       .filter(Boolean);
   }, [products]);
 
-  const cartMetricsMap = useMemo(() => {
-    if (!cartMetrics?.length) return {};
-    return cartMetrics.reduce((acc, metric) => {
-      if (!metric?.productId) return acc;
-      acc[metric.productId] = metric;
-      return acc;
-    }, {});
-  }, [cartMetrics]);
-
-  const catalogStats = useMemo(() => {
-    if (!flatProducts.length && !cartMetrics.length) {
-      return {
-        totalProducts: 0,
-        totalStock: 0,
-        avgPrice: 0,
-        lowStockCount: 0,
-        mostOrdered: [],
-        leastOrdered: [],
-        categoryDistribution: []
-      };
-    }
-
-    const totalProducts = flatProducts.length;
-    const totalStock = flatProducts.reduce((sum, product) => sum + Number(product.stock || 0), 0);
-    const avgPrice = totalProducts
-      ? Math.round(
-          flatProducts.reduce((sum, product) => sum + Number(product.price || 0), 0) / totalProducts
-        )
-      : 0;
-    const lowStockCount = flatProducts.filter((product) => Number(product.stock || 0) <= 5).length;
-
-    const withOrdersMetric = flatProducts.map((product) => {
-      const metric = cartMetricsMap[product.id];
-      return {
-        ...product,
-        ordersMetric: Number(metric?.cartAdds ?? 0)
-      };
-    });
-
-    const existingProductIds = new Set(flatProducts.map((product) => product.id));
-    const metricsOnlyProducts = cartMetrics
-      .filter((metric) => metric.productId && !existingProductIds.has(metric.productId))
-      .map((metric) => ({
-        id: metric.productId,
-        name: metric.productName || 'Producto sin nombre',
-        category: metric.category || 'otros',
-        price: 0,
-        stock: 0,
-        ordersMetric: Number(metric.cartAdds || 0)
-      }));
-
-    const rankingPool = [...withOrdersMetric, ...metricsOnlyProducts];
-
-    const mostOrdered = rankingPool
-      .filter((product) => (product.ordersMetric || 0) > 0)
-      .sort((a, b) => (b.ordersMetric || 0) - (a.ordersMetric || 0))
-      .slice(0, 5);
-    const leastOrdered = rankingPool
-      .sort((a, b) => (a.ordersMetric || 0) - (b.ordersMetric || 0))
-      .slice(0, 5);
-
-    const categoryMap = withOrdersMetric.reduce((acc, product) => {
-      const category = typeof product.category === 'string' && product.category.trim()
-        ? product.category
-        : 'otros';
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {});
-
-    const categoryDistribution = Object.entries(categoryMap).map(([category, count]) => ({
-      category,
-      count,
-      percentage: totalProducts ? Math.round((count / totalProducts) * 100) : 0
-    }));
-
-    return {
-      totalProducts,
-      totalStock,
-      avgPrice,
-      lowStockCount,
-      mostOrdered,
-      leastOrdered,
-      categoryDistribution
-    };
-  }, [flatProducts, cartMetrics, cartMetricsMap]);
-
   const formatCategoryLabel = (category) => {
     if (category === 'mascotasPequeñas') return 'Mascotas pequeñas';
     if (category === 'otros') return 'Otros';
@@ -1223,46 +1114,6 @@ export default function Home() {
     logout();
   };
 
-  const recordCartMetric = useCallback(
-    async (product) => {
-      if (!product?.id) return;
-      try {
-        const response = await fetch('/api/cart-metrics', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            productId: product.id,
-            productName: product.name,
-            category: product.category || activeCategory || 'otros'
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to record cart metric');
-        }
-
-        const data = await response.json();
-        setCartMetrics((prev) => {
-          const others = prev.filter((metric) => metric.productId !== data.productId);
-          return [
-            ...others,
-            {
-              productId: data.productId,
-              productName: product.name || data.productName || 'Producto sin nombre',
-              category: product.category || data.category || activeCategory || 'otros',
-              cartAdds: Number(data.cartAdds ?? 0)
-            }
-          ];
-        });
-      } catch (error) {
-        console.error('Error registrando métrica de carrito:', error);
-      }
-    },
-    [activeCategory]
-  );
-
   const handleAddToCart = (product) => {
     if (product.stock <= 0) return;
     
@@ -1270,9 +1121,6 @@ export default function Home() {
     
     // Mostrar notificación
     showAlert(`¡${product.name} se ha añadido al carrito!`, 'success');
-    
-    // Registrar métrica (desactivado temporalmente)
-    // recordCartMetric(product);
   };
 
   const handleAddWithAnimation = (product, e) => {
@@ -1334,11 +1182,77 @@ export default function Home() {
     }
   };
 
+  // Función para normalizar el precio (acepta formatos con y sin punto)
+  const normalizePrice = (priceString) => {
+    if (!priceString || priceString === '') return '';
+    
+    // Eliminar todo excepto números y puntos
+    let cleanValue = priceString.replace(/[^0-9.]/g, '');
+    
+    // Si hay múltiples puntos, tratarlos como separadores de miles chilenos
+    const parts = cleanValue.split('.');
+    
+    if (parts.length > 2) {
+      // Si hay más de 2 puntos, todos son de miles excepto quizás el último
+      // Ej: 1.234.567.89 -> 1234567.89
+      const allButLast = parts.slice(0, -1).join(''); // Unir todas las partes excepto la última
+      const lastPart = parts[parts.length - 1];
+      
+      // Si la última parte tiene 1-2 dígitos, es decimal; si tiene 3+, es miles
+      if (lastPart.length <= 2) {
+        cleanValue = allButLast + '.' + lastPart;
+      } else {
+        cleanValue = allButLast + lastPart; // Todos son miles
+      }
+    } else if (parts.length === 2) {
+      // Si hay exactamente 2 puntos, determinar si el último es decimal o de miles
+      const firstPart = parts[0];
+      const lastPart = parts[1];
+      
+      // Si la última parte tiene 1-2 dígitos, es decimal
+      // Si tiene 3+ dígitos, es separador de miles
+      if (lastPart.length <= 2) {
+        cleanValue = firstPart + '.' + lastPart; // Es decimal
+      } else {
+        cleanValue = firstPart + lastPart; // Es separador de miles
+      }
+    }
+    
+    // Limitar decimales a 2 dígitos
+    const decimalParts = cleanValue.split('.');
+    if (decimalParts.length > 1 && decimalParts[1].length > 2) {
+      cleanValue = decimalParts[0] + '.' + decimalParts[1].substring(0, 2);
+    }
+    
+    return cleanValue;
+  };
+
+  // Función para formatear el precio para mostrar (SOLO para display, no para guardar)
+  const formatPriceForDisplay = (price) => {
+    if (!price || price === '') return '';
+    
+    // Convertir a número para formatear
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice)) return price; // Si no es número, devolver como está
+    
+    // Para valores sin decimales o con .00, mostrar sin decimales
+    if (numPrice === Math.floor(numPrice)) {
+      return numPrice.toLocaleString('es-CL');
+    }
+    
+    // Para valores con decimales, mostrar con 2 decimales
+    return numPrice.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const handleAddProduct = (e) => {
     e.preventDefault();
+    
+    // Validar que no se guarde con categoría "todos"
+    const categoryToUse = formData.category === 'todos' ? 'perros' : formData.category;
+    
     const newProduct = {
       name: formData.name,
-      price: Number(formData.price),
+      price: Number(normalizePrice(formData.price)) || 0,
       image: formData.image || `https://via.placeholder.com/300x200?text=${encodeURIComponent(formData.name)}`,
       stock: Number(formData.stock) || 0,
       barcode: formData.barcode || '',
@@ -1347,37 +1261,31 @@ export default function Home() {
     
     if (editingProduct) {
       // Usar la categoría del formulario en lugar de la categoría anterior
-      updateProduct(formData.category, editingProduct.id, newProduct);
+      updateProduct(categoryToUse, editingProduct.id, newProduct);
       showAlert(`"${newProduct.name}" actualizado exitosamente`, 'success');
     } else {
-      addProduct(formData.category, newProduct);
+      addProduct(categoryToUse, newProduct);
       showAlert(`"${newProduct.name}" agregado exitosamente`, 'success');
     }
     
-    setFormData({
-      name: '',
-      price: '',
-      category: 'perros',
-      image: '',
-      stock: '',
-      barcode: '',
-      details: createEmptyDetails()
-    });
     setEditingProduct(null);
     setShowAddProduct(false);
   };
 
   const handleEditProduct = (product, category) => {
+    const priceValue = product.price?.toString() || '';
     setFormData({
       name: product.name,
-      price: product.price,
-      category: category,
+      price: priceValue,
+      category: product.category || category,
       image: product.image,
       stock: product.stock || '',
       barcode: product.barcode || '',
       details: normalizeDetails(product.details)
     });
-    setEditingProduct({ id: product.id, category });
+    // Sincronizar el display del precio
+    setPriceDisplayValue(formatPriceForDisplay(priceValue));
+    setEditingProduct({ id: product.id, category: product.category || category });
     setShowAddProduct(true);
   };
 
@@ -1580,12 +1488,12 @@ export default function Home() {
             ).map((category) => {
               const categoryConfig = {
                 perros: {
-                  emoji: '🐶',
+                  emoji: '🐕',
                   label: 'Perros',
                   bgGradient: 'from-blue-500 to-cyan-600',
                   activeBgGradient: 'from-red-500 to-red-600',
                   hoverGradient: 'from-blue-600 to-cyan-700',
-                  image: '/images/dog-section.jpg'
+                  image: '/images/dog-section.svg'
                 },
                 gatos: {
                   emoji: '🐱',
@@ -1593,7 +1501,7 @@ export default function Home() {
                   bgGradient: 'from-pink-500 to-rose-600',
                   activeBgGradient: 'from-indigo-500 to-purple-600',
                   hoverGradient: 'from-pink-600 to-rose-700',
-                  image: '/images/cat-section.jpg'
+                  image: '/images/cat-section.svg'
                 },
                 mascotasPequeñas: {
                   emoji: '🐹',
@@ -1601,7 +1509,7 @@ export default function Home() {
                   bgGradient: 'from-green-500 to-emerald-600',
                   activeBgGradient: 'from-amber-700 to-amber-800',
                   hoverGradient: 'from-green-600 to-emerald-700',
-                  image: '/images/small-pets-section.jpg'
+                  image: '/images/small-pets-section.svg'
                 },
                 accesorios: {
                   emoji: '🎾',
@@ -1609,7 +1517,7 @@ export default function Home() {
                   bgGradient: 'from-orange-500 to-amber-600',
                   activeBgGradient: 'from-teal-500 to-cyan-600',
                   hoverGradient: 'from-orange-600 to-amber-700',
-                  image: '/images/accessories-section.jpg'
+                  image: '/images/accessories-section.svg'
                 },
                 farmacia: {
                   emoji: '💊',
@@ -1617,7 +1525,7 @@ export default function Home() {
                   bgGradient: 'from-purple-500 to-violet-600',
                   activeBgGradient: 'from-gray-500 to-slate-600',
                   hoverGradient: 'from-purple-600 to-violet-700',
-                  image: '/images/pharmacy-section.jpg'
+                  image: '/images/pharmacy-section.svg'
                 }
               };
 
@@ -1941,80 +1849,182 @@ export default function Home() {
             <section className="mb-6 bg-white/95 sm:dark:bg-gray-900/70 backdrop-blur-sm rounded-2xl border border-gray-100 sm:dark:border-gray-800 shadow-lg p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 sm:dark:text-white">Panel de estadísticas</h3>
-                  <p className="text-sm text-gray-500 sm:dark:text-gray-400">Solo visible para administradores</p>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 sm:dark:text-white">Panel de Estadísticas y Analíticas</h3>
+                  <p className="text-sm text-gray-500 sm:dark:text-gray-400">Métricas clave para el crecimiento del negocio</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Última actualización:</span>
+                  <span className="text-xs font-medium text-gray-700">{new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
 
+              {/* Métricas de Vercel Analytics en Tiempo Real */}
               <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Productos totales</p>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{catalogStats.totalProducts}</p>
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-blue-50 to-indigo-50 sm:dark:from-blue-900/20 sm:dark:to-indigo-900/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Visitantes Hoy</p>
+                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0c0 .656-.126 1.283-.356 1.857m0 0V9a7 7 0 0114 0v9m-7 0a3 3 0 01-3-3V7a3 3 0 016 0v9a3 3 0 01-3 3z" />
+                    </svg>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{realTimeData.visitors.toLocaleString('es-CL')}</p>
+                  <p className="text-xs text-gray-500 mt-1">Usuarios únicos</p>
                 </div>
-                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Stock acumulado</p>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{catalogStats.totalStock.toLocaleString('es-CL')}</p>
+                
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-green-50 to-emerald-50 sm:dark:from-green-900/20 sm:dark:to-emerald-900/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Páginas Vistas</p>
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{realTimeData.pageViews.toLocaleString('es-CL')}</p>
+                  <p className="text-xs text-gray-500 mt-1">Total vistas</p>
                 </div>
-                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Precio promedio</p>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">${catalogStats.avgPrice.toLocaleString('es-CL')}</p>
+                
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-amber-50 to-orange-50 sm:dark:from-amber-900/20 sm:dark:to-orange-900/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Tasa Rebote</p>
+                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{realTimeData.bounceRate}%</p>
+                  <p className="text-xs text-gray-500 mt-1">Porcentaje</p>
                 </div>
-                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Bajo stock (≤5)</p>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{catalogStats.lowStockCount}</p>
+                
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-purple-50 to-pink-50 sm:dark:from-purple-900/20 sm:dark:to-pink-900/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Duración Sesión</p>
+                    <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">
+                    {Math.floor(realTimeData.avgSessionDuration / 60)}:{(realTimeData.avgSessionDuration % 60).toString().padStart(2, '0')}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Minutos</p>
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Analytics Detallados de Vercel */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Más solicitados</h4>
-                    <span className="text-xs text-gray-500">Top 5</span>
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Páginas Más Visitadas</h4>
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600">Top 5</span>
                   </div>
-                  {catalogStats.mostOrdered.length ? (
-                    <ul className="space-y-2">
-                      {catalogStats.mostOrdered.map((product) => (
-                        <li key={`most-${product.id}`} className="flex items-center justify-between text-sm">
-                          <span className="truncate text-gray-800 sm:dark:text-gray-200">{product.name || 'Sin nombre'}</span>
-                          <span className="ml-3 inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-indigo-50 sm:dark:bg-indigo-900/40 text-indigo-600 sm:dark:text-indigo-200">
-                            {(product.ordersMetric || 0).toLocaleString('es-CL')} pedidos
+                  <div className="space-y-2">
+                    {realTimeData.topPages.map((page, index) => (
+                      <div key={page.path} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                            index === 0 ? 'bg-blue-100 text-blue-600' :
+                            index === 1 ? 'bg-gray-100 text-gray-600' :
+                            index === 2 ? 'bg-amber-100 text-amber-600' :
+                            'bg-green-100 text-green-600'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <span className="text-xs text-gray-600 truncate max-w-[100px]">
+                            {page.path === '/' ? 'Inicio' : page.path}
                           </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="relative min-h-screen bg-gray-50">
-                      <p className="text-sm text-gray-500">Aún no hay datos suficientes.</p>
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-              <div className="mt-6">
-                <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white mb-3">Distribución por categoría</h4>
-                {catalogStats.categoryDistribution.length ? (
-                  <div className="flex items-end space-x-3 h-40">
-                    {catalogStats.categoryDistribution
-                      .filter(({ category }) => category !== 'otros')
-                      .map(({ category, percentage, count }) => (
-                      <div key={category} className="flex-1 flex flex-col items-center">
-                        <div
-                          className="w-full rounded-t-lg bg-gradient-to-t from-indigo-500 to-purple-500 text-white text-xs font-semibold flex items-end justify-center"
-                          style={{ height: `${Math.max(percentage, 5)}%` }}
-                          title={`${count} productos`}
-                        >
-                          <span className="pb-1">{percentage}%</span>
                         </div>
-                        <p className="category-label mt-2 text-xs text-center text-gray-600 sm:dark:text-gray-300">
-                          {category === 'mascotasPequeñas' ? 'Mascotas pequeñas' : category}
-                        </p>
+                        <div className="text-right">
+                          <span className="text-xs font-medium text-gray-700">{page.views}</span>
+                          <span className="text-xs text-gray-500 ml-1">({page.percentage}%)</span>
+                        </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Agrega productos para ver la distribución.</p>
-                )}
+                </div>
+
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Países Visitantes</h4>
+                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-600">Geografía</span>
+                  </div>
+                  <div className="space-y-2">
+                    {realTimeData.countries.map((country) => (
+                      <div key={country.code} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">{country.code}</span>
+                          <span className="text-xs text-gray-600">{country.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-gradient-to-r from-purple-400 to-purple-600 h-1.5 rounded-full" 
+                              style={{width: `${country.percentage}%`}}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 w-8 text-right">{country.percentage}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Dispositivos</h4>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Devices</span>
+                  </div>
+                  <div className="space-y-3">
+                    {realTimeData.devices.map((device) => (
+                      <div key={device.type} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded flex items-center justify-center text-xs ${
+                            device.type === 'Desktop' ? 'bg-blue-100' :
+                            device.type === 'Mobile' ? 'bg-green-100' :
+                            'bg-amber-100'
+                          }`}>
+                            {device.type === 'Desktop' ? '🖥️' : device.type === 'Mobile' ? '📱' : '📋'}
+                          </div>
+                          <span className="text-xs text-gray-600">{device.type}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className={`bg-gradient-to-r h-1.5 rounded-full ${
+                                device.type === 'Desktop' ? 'from-blue-400 to-blue-600' :
+                                device.type === 'Mobile' ? 'from-green-400 to-green-600' :
+                                'from-amber-400 to-amber-600'
+                              }`}
+                              style={{width: `${device.percentage}%`}}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 w-8 text-right">{device.percentage}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Estado de Integración con Analytics */}
+              <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-gray-900">Vercel Analytics Conectado</h4>
+                      <p className="text-sm text-gray-600">Recibiendo métricas en tiempo real</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Activo</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Última actualización: {new Date().toLocaleTimeString('es-CL')}</p>
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -2382,7 +2392,10 @@ export default function Home() {
             <button 
               onClick={() => {
                 setEditingProduct(null);
-                setFormData(createEmptyFormData(activeCategory));
+                // Si está en "todos", inicializar con "perros" por defecto
+                const defaultCategory = activeCategory === 'todos' ? 'perros' : activeCategory;
+                setFormData(createEmptyFormData(defaultCategory));
+                setPriceDisplayValue(''); // Resetear el display del precio
                 setShowAddProduct(true);
               }}
               className="p-3 sm:p-4 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
@@ -2754,227 +2767,485 @@ export default function Home() {
                 </button>
               </div>
               
-              <form onSubmit={handleAddProduct}>
-                <div className="mb-3 sm:mb-4">
-                  <label htmlFor="product-name" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                    Nombre del Producto
-                  </label>
-                  <input
-                    type="text"
-                    id="product-name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                    required
-                  />
-                </div>
-                
-                <div className="mb-3 sm:mb-4">
-                  <label htmlFor="product-price" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                    Precio
-                  </label>
-                  <input
-                    type="number"
-                    id="product-price"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                    required
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                
-                <div className="mb-3 sm:mb-4">
-                  <label htmlFor="product-category" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                    Categoría
-                  </label>
-                  <select
-                    id="product-category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                    required
-                  >
-                    <option value="perros">Perros</option>
-                    <option value="gatos">Gatos</option>
-                    <option value="mascotasPequeñas">Mascotas Pequeñas</option>
-                    <option value="accesorios">Accesorios y Juguetes</option>
-                    <option value="farmacia">Farmacia</option>
-                  </select>
-                </div>
-                
-                <div className="mb-3 sm:mb-4">
-                  <label htmlFor="product-stock" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                    Stock
-                  </label>
-                  <input
-                    type="number"
-                    id="product-stock"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                    required
-                    min="0"
-                    placeholder="0"
-                  />
+              <form onSubmit={handleAddProduct} className="space-y-5">
+                {/* Sección Información Básica */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
+                  <div className="flex items-center mb-4">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Información Básica</h3>
+                      <p className="text-sm text-gray-600">Datos principales del producto</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="product-name" className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                        <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Nombre del Producto
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          id="product-name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                          placeholder="Ej: Alimento Premium para Perros Adultos"
+                          required
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="product-price" className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Precio
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-500 font-semibold">$</span>
+                          </div>
+                          <input
+                            type="text"
+                            id="product-price"
+                            value={priceDisplayValue}
+                            onChange={(e) => {
+                              const displayValue = e.target.value;
+                              setPriceDisplayValue(displayValue);
+                              
+                              // Normalizar y guardar el valor real
+                              const normalizedPrice = normalizePrice(displayValue);
+                              setFormData({...formData, price: normalizedPrice});
+                            }}
+                            onBlur={(e) => {
+                              // Al perder el foco, formatear para display pero mantener el valor real
+                              const normalizedPrice = normalizePrice(e.target.value);
+                              setFormData({...formData, price: normalizedPrice});
+                              setPriceDisplayValue(formatPriceForDisplay(normalizedPrice));
+                            }}
+                            onFocus={(e) => {
+                              // Al hacer foco, mostrar el valor sin formato para fácil edición
+                              setPriceDisplayValue(formData.price);
+                            }}
+                            className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                            placeholder="0"
+                            required
+                            min="0"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="product-category" className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                          Categoría
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="product-category"
+                            value={formData.category}
+                            onChange={(e) => setFormData({...formData, category: e.target.value})}
+                            className="w-full pl-10 pr-8 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 appearance-none cursor-pointer"
+                            required
+                          >
+                            <option value="perros">🐕 Perros</option>
+                            <option value="gatos">🐈 Gatos</option>
+                            <option value="mascotasPequeñas">🐹 Mascotas Pequeñas</option>
+                            <option value="accesorios">🎾 Accesorios y Juguetes</option>
+                            <option value="farmacia">💊 Farmacia</option>
+                          </select>
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                          </div>
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="product-stock" className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                        <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        Stock
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          id="product-stock"
+                          value={formData.stock}
+                          onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                          placeholder="0"
+                          required
+                          min="0"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mb-3 sm:mb-4">
-                  <label htmlFor="product-barcode" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                    Código de barras (opcional)
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      id="product-barcode"
-                      value={formData.barcode}
-                      onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                      placeholder="Escanea o escribe el código"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowProductScanner(true)}
-                      className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Escanear
-                    </button>
+                {/* Sección Código de Barras */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-100">
+                  <div className="flex items-center mb-4">
+                    <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Código de Barras</h3>
+                      <p className="text-sm text-gray-600">Identificación única del producto (opcional)</p>
+                    </div>
                   </div>
-                  {formData.barcode && (
-                    <p className="mt-1 text-xs text-gray-500">Código actual: {formData.barcode}</p>
-                  )}
+                  
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          id="product-barcode"
+                          value={formData.barcode}
+                          onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                          placeholder="Escanea o escribe el código"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowProductScanner(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg flex items-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Escanear
+                      </button>
+                    </div>
+                    {formData.barcode && (
+                      <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm font-medium text-green-800">Código actual: <span className="font-mono bg-green-100 px-2 py-1 rounded">{formData.barcode}</span></span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {isAccessoryCategory ? (
-                  <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100">
+                    <div className="flex items-center mb-4">
+                      <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                      </div>
                       <div>
-                        <p className="text-xs sm:text-sm font-semibold text-gray-900">Especificaciones del accesorio</p>
-                        <p className="text-[11px] text-gray-500">
-                          Describe materiales, medidas y detalles útiles para los clientes.
-                        </p>
+                        <h3 className="text-lg font-bold text-gray-900">Especificaciones del Accesorio</h3>
+                        <p className="text-sm text-gray-600">Describe materiales, medidas y detalles útiles para los clientes</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                        <input
-                          type="text"
-                          value={accessorySpecs.type}
-                          onChange={(e) => handleAccessorySpecChange('type', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Ej: Correa retráctil, rascador, rompecabezas"
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                          Tipo
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={accessorySpecs.type}
+                            onChange={(e) => handleAccessorySpecChange('type', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                            placeholder="Ej: Correa retráctil, rascador, rompecabezas"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+                      
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Medidas / dimensiones</label>
-                        <input
-                          type="text"
-                          value={accessorySpecs.dimensions}
-                          onChange={(e) => handleAccessorySpecChange('dimensions', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Ej: 45 cm x 3 cm · Talla M"
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                          Medidas / Dimensiones
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={accessorySpecs.dimensions}
+                            onChange={(e) => handleAccessorySpecChange('dimensions', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                            placeholder="Ej: 45 cm x 3 cm · Talla M"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+                      
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Color principal</label>
-                        <input
-                          type="text"
-                          value={accessorySpecs.color}
-                          onChange={(e) => handleAccessorySpecChange('color', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Ej: Verde lima"
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                          </svg>
+                          Color Principal
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={accessorySpecs.color}
+                            onChange={(e) => handleAccessorySpecChange('color', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                            placeholder="Ej: Verde lima"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+                      
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Material</label>
-                        <input
-                          type="text"
-                          value={accessorySpecs.material}
-                          onChange={(e) => handleAccessorySpecChange('material', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Ej: Nylon reforzado, silicona grado alimenticio"
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 4.142M8 4v5.172a2 2 0 00.586 1.414l5 5M8 4l1 1" />
+                          </svg>
+                          Material
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={accessorySpecs.material}
+                            onChange={(e) => handleAccessorySpecChange('material', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                            placeholder="Ej: Nylon reforzado, silicona grado alimenticio"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 4.142M8 4v5.172a2 2 0 00.586 1.414l5 5M8 4l1 1" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Mascota recomendada</label>
-                        <input
-                          type="text"
-                          value={accessorySpecs.recommendedPet}
-                          onChange={(e) => handleAccessorySpecChange('recommendedPet', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Ej: Perros medianos · Gatos adultos"
-                        />
+                      
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                          Mascota Recomendada
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={accessorySpecs.recommendedPet}
+                            onChange={(e) => handleAccessorySpecChange('recommendedPet', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
+                            placeholder="Ej: Perros medianos · Gatos adultos"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                    
                     <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Características destacadas</label>
-                      <textarea
-                        value={accessorySpecs.highlights}
-                        onChange={(e) => handleAccessorySpecChange('highlights', e.target.value)}
-                        className="w-full min-h-[90px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="Incluye detalles como usos, beneficios, accesorios incluidos o modos de juego."
-                      />
+                      <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                        <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784.57-1.838-.197-1.539-1.81l1.52-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                        Características Destacadas
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          value={accessorySpecs.highlights}
+                          onChange={(e) => handleAccessorySpecChange('highlights', e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 resize-none"
+                          rows={4}
+                          placeholder="Incluye detalles como usos, beneficios, accesorios incluidos o modos de juego."
+                        />
+                        <div className="absolute top-3 left-3 pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784.57-1.838-.197-1.539-1.81l1.52-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : isPharmacyCategory ? (
-                  <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-5 border border-red-100">
+                    <div className="flex items-center mb-4">
+                      <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 4.142M8 4v5.172a2 2 0 00.586 1.414l5 5M8 4l1 1" />
+                        </svg>
+                      </div>
                       <div>
-                        <p className="text-xs sm:text-sm font-semibold text-gray-900">Ficha del medicamento</p>
-                        <p className="text-[11px] text-gray-500">
-                          Registra la información clave para orientar a los tutores sobre su uso responsable.
-                        </p>
+                        <h3 className="text-lg font-bold text-gray-900">Ficha del Medicamento</h3>
+                        <p className="text-sm text-gray-600">Registra la información clave para orientar a los tutores sobre su uso responsable</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-3">
+                    
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tipo de producto</label>
-                        <select
-                          value={pharmacyInfo.productType}
-                          onChange={(e) => handlePharmacyInfoChange('productType', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          <option value="">Selecciona una opción</option>
-                          {PHARMACY_PRODUCT_TYPES.map((type) => (
-                            <option key={type} value={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 4.142M8 4v5.172a2 2 0 00.586 1.414l5 5M8 4l1 1" />
+                          </svg>
+                          Tipo de Producto
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={pharmacyInfo.productType}
+                            onChange={(e) => handlePharmacyInfoChange('productType', e.target.value)}
+                            className="w-full pl-10 pr-8 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 appearance-none cursor-pointer"
+                          >
+                            <option value="">Selecciona una opción</option>
+                            {PHARMACY_PRODUCT_TYPES.map((type) => (
+                              <option key={type} value={type}>
+                                💊 {type}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 4.142M8 4v5.172a2 2 0 00.586 1.414l5 5M8 4l1 1" />
+                            </svg>
+                          </div>
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Indicaciones</label>
-                        <textarea
-                          value={pharmacyInfo.indications}
-                          onChange={(e) => handlePharmacyInfoChange('indications', e.target.value)}
-                          className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Describe para qué casos se recomienda (parasiticida, antiinflamatorio, antipulgas...)."
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Indicaciones
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            value={pharmacyInfo.indications}
+                            onChange={(e) => handlePharmacyInfoChange('indications', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 resize-none"
+                            rows={3}
+                            placeholder="Describe para qué casos se recomienda (parasiticida, antiinflamatorio, antipulgas...)."
+                          />
+                          <div className="absolute top-3 left-3 pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+                      
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Modo de uso / administración</label>
-                        <textarea
-                          value={pharmacyInfo.usage}
-                          onChange={(e) => handlePharmacyInfoChange('usage', e.target.value)}
-                          className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Incluye dosis orientativa, frecuencia, vía de administración o pasos relevantes."
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Modo de Uso / Administración
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            value={pharmacyInfo.usage}
+                            onChange={(e) => handlePharmacyInfoChange('usage', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 resize-none"
+                            rows={3}
+                            placeholder="Incluye dosis orientativa, frecuencia, vía de administración o pasos relevantes."
+                          />
+                          <div className="absolute top-3 left-3 pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+                      
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Contraindicaciones y advertencias</label>
-                        <textarea
-                          value={pharmacyInfo.contraindications}
-                          onChange={(e) => handlePharmacyInfoChange('contraindications', e.target.value)}
-                          className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          placeholder="Ej: No usar en hembras gestantes o lactantes, animales menores a 3 meses, etc."
-                        />
+                        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          Contraindicaciones y Advertencias
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            value={pharmacyInfo.contraindications}
+                            onChange={(e) => handlePharmacyInfoChange('contraindications', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 resize-none"
+                            rows={3}
+                            placeholder="Ej: No usar en hembras gestantes o lactantes, animales menores a 3 meses, etc."
+                          />
+                          <div className="absolute top-3 left-3 pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-[11px] text-gray-500">
-                      Recuerda siempre recomendar que los clientes consulten con su veterinario para indicaciones específicas.
-                    </p>
+                    
+                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start">
+                      <svg className="w-5 h-5 text-amber-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm font-medium text-amber-800">
+                        Recuerda siempre recomendar que los clientes consulten con su veterinario para indicaciones específicas.
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-5 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-4 bg-gray-50">
@@ -3200,29 +3471,29 @@ export default function Home() {
                   <p className="mt-1 text-xs text-gray-500">Deja vacío para usar una imagen predeterminada</p>
                 </div>
                 
-                <div className="flex justify-end space-x-2 sm:space-x-3">
+                <div className="flex gap-3 pt-6 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => {
                       setShowAddProduct(false);
-                      setFormData({
-                        name: '',
-                        price: '',
-                        category: 'perros',
-                        image: '',
-                        stock: '',
-                        barcode: ''
-                      });
+                      setFormData(createEmptyFormData('perros'));
+                      setPriceDisplayValue(''); // Resetear el display del precio
                       setEditingProduct(null);
                     }}
-                    className="px-3 sm:px-4 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl font-semibold hover:from-gray-600 hover:to-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
                   >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-3 sm:px-4 py-2 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
                   >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
                     {editingProduct ? 'Guardar Cambios' : 'Agregar Producto'}
                   </button>
                 </div>
