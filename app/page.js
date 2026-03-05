@@ -261,7 +261,7 @@ const CATALOG_SOCIAL_LINKS = [
 export default function Home() {
   const { user, login, logout } = useAuth();
   const { products, addProduct, updateProduct, deleteProduct, loading } = useProducts();
-  const { realTimeData } = useVercelAnalytics();
+  const { realTimeData, trackPageView } = useVercelAnalytics();
   const isAdmin = user?.role === 'admin';
   const [activeCategory, setActiveCategory] = useState('todos'); // Valor por defecto 'todos'
   const [showLogin, setShowLogin] = useState(false);
@@ -1098,6 +1098,12 @@ export default function Home() {
     return category.charAt(0).toUpperCase() + category.slice(1);
   };
 
+  // Trackear vistas de página
+  useEffect(() => {
+    const currentPath = activeCategory === 'todos' ? '/' : `/${activeCategory}`;
+    trackPageView(currentPath);
+  }, [activeCategory, trackPageView]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     const result = await login(loginData.username, loginData.password);
@@ -1858,17 +1864,17 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Métricas de Vercel Analytics en Tiempo Real */}
-              <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Métricas Principales del Sitio */}
+              <div className="mt-5 grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-blue-50 to-indigo-50 sm:dark:from-blue-900/20 sm:dark:to-indigo-900/20">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs uppercase tracking-wide text-gray-600">Visitantes Hoy</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Visitantes Mensuales</p>
                     <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0c0 .656-.126 1.283-.356 1.857m0 0V9a7 7 0 0114 0v9m-7 0a3 3 0 01-3-3V7a3 3 0 016 0v9a3 3 0 01-3 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2a3 3 0 002 2h2a2 2 0 002 2v10m-6 0a2 2 0 002 2h2a2 2 0 002 2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10" />
                     </svg>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{realTimeData.visitors.toLocaleString('es-CL')}</p>
-                  <p className="text-xs text-gray-500 mt-1">Usuarios únicos</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{(realTimeData.visitors || 0).toLocaleString('es-CL')}</p>
+                  <p className="text-xs text-gray-500 mt-1">Últimos 30 días</p>
                 </div>
                 
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-green-50 to-emerald-50 sm:dark:from-green-900/20 sm:dark:to-emerald-900/20">
@@ -1879,147 +1885,205 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{realTimeData.pageViews.toLocaleString('es-CL')}</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{(realTimeData.pageViews || 0).toLocaleString('es-CL')}</p>
                   <p className="text-xs text-gray-500 mt-1">Total vistas</p>
+                </div>
+                
+                <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-green-500 to-green-600 sm:dark:from-green-600 sm:dark:to-green-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-wide text-white">Pedidos WhatsApp</p>
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.149-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{(realTimeData.whatsappOrdersCount || 0).toLocaleString('es-CL')}</p>
+                  <p className="text-xs text-green-100 mt-1">Enviados</p>
                 </div>
                 
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-amber-50 to-orange-50 sm:dark:from-amber-900/20 sm:dark:to-orange-900/20">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs uppercase tracking-wide text-gray-600">Tasa Rebote</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Productos Totales</p>
                     <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4M2 17l8-4 8 4M3 21h18M12 17v4" />
                     </svg>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{realTimeData.bounceRate}%</p>
-                  <p className="text-xs text-gray-500 mt-1">Porcentaje</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">{(realTimeData.totalProducts || 0).toLocaleString('es-CL')}</p>
+                  <p className="text-xs text-gray-500 mt-1">En catálogo</p>
                 </div>
                 
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-gradient-to-br from-purple-50 to-pink-50 sm:dark:from-purple-900/20 sm:dark:to-pink-900/20">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs uppercase tracking-wide text-gray-600">Duración Sesión</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-600">Valor Inventario</p>
                     <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343.895 3 3 .895 3 3-3 .895-3-3zm0 2h.01M12 15v.01M9 12h6m-6 4h6" />
                     </svg>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">
-                    {Math.floor(realTimeData.avgSessionDuration / 60)}:{(realTimeData.avgSessionDuration % 60).toString().padStart(2, '0')}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">Minutos</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:dark:text-white">$ {(realTimeData.inventoryValue || 0).toLocaleString('es-CL')}</p>
+                  <p className="text-xs text-gray-500 mt-1">Valor total</p>
                 </div>
               </div>
 
-              {/* Analytics Detallados de Vercel */}
+              {/* Distribución por Categorías */}
+              <div className="mt-6 p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Distribución del Catálogo</h4>
+                  <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-600">Categorías</span>
+                </div>
+                
+                {/* Gráfica de Pastel Completa */}
+                <div className="flex justify-center mb-4">
+                  <div className="relative w-48 h-48">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                      {realTimeData.categoryDistribution?.map((category, index) => {
+                        const percentage = parseFloat(category.percentage) || 0;
+                        const circumference = 2 * Math.PI * 45;
+                        const strokeDasharray = `${percentage * circumference / 100} ${circumference}`;
+                        
+                        // Calcular el ángulo de rotación para cada segmento
+                        let rotation = 0;
+                        for (let i = 0; i < index; i++) {
+                          rotation += parseFloat(realTimeData.categoryDistribution[i]?.percentage || 0) * 3.6; // Convertir porcentaje a grados
+                        }
+                        
+                        const colors = [
+                          '#3B82F6', // Azul para Perros
+                          '#EC4899', // Rosa para Gatos  
+                          '#10B981', // Verde para Mascotas Pequeñas
+                          '#F97316', // Naranja para Accesorios
+                          '#8B5CF6'  // Púrpura para Farmacia
+                        ];
+                        
+                        return (
+                          <circle
+                            key={category.category}
+                            cx="50"
+                            cy="50"
+                            r="45"
+                            fill="none"
+                            stroke={colors[index % colors.length]}
+                            strokeWidth="10"
+                            strokeDasharray={strokeDasharray}
+                            transform={`rotate(${rotation} 50 50)`}
+                            className="transition-all duration-300"
+                            style={{
+                              transformOrigin: 'center',
+                              transform: `rotate(${rotation}deg)`,
+                            }}
+                          />
+                        );
+                      })}
+                      
+                      {/* Centro con información */}
+                      <circle cx="50" cy="50" r="25" fill="white" className="sm:dark:fill-gray-900" />
+                      <text x="50" y="45" textAnchor="middle" dominantBaseline="middle" className="text-lg font-bold fill-gray-700 sm:dark:fill-gray-300">
+                        {realTimeData.totalProducts?.toLocaleString('es-CL')}
+                      </text>
+                      <text x="50" y="58" textAnchor="middle" dominantBaseline="middle" className="text-xs fill-gray-500 sm:dark:fill-gray-500">
+                        productos
+                      </text>
+                    </svg>
+                  </div>
+                </div>
+                
+                {/* Leyenda de Categorías */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {realTimeData.categoryDistribution?.map((category, index) => {
+                    const colors = [
+                      'bg-blue-100 text-blue-600 border-blue-200',
+                      'bg-pink-100 text-pink-600 border-pink-200', 
+                      'bg-green-100 text-green-600 border-green-200',
+                      'bg-orange-100 text-orange-600 border-orange-200',
+                      'bg-purple-100 text-purple-600 border-purple-200'
+                    ];
+                    
+                    return (
+                      <div key={category.category} className={`p-3 rounded-lg border ${colors[index % colors.length]}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                          <span className="text-xs font-bold">{category.percentage}%</span>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          <div>{category.count?.toLocaleString('es-CL')} productos</div>
+                          <div>Precio prom: $ {(category.avgPrice || 0).toLocaleString('es-CL')}</div>
+                          <div>Stock: {category.stock?.toLocaleString('es-CL') || '0'}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Métricas Adicionales */}
               <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Páginas Más Visitadas</h4>
-                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600">Top 5</span>
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Stock Crítico</h4>
+                    <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">Alerta</span>
                   </div>
                   <div className="space-y-2">
-                    {realTimeData.topPages.map((page, index) => (
-                      <div key={page.path} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                            index === 0 ? 'bg-blue-100 text-blue-600' :
-                            index === 1 ? 'bg-gray-100 text-gray-600' :
-                            index === 2 ? 'bg-amber-100 text-amber-600' :
-                            'bg-green-100 text-green-600'
-                          }`}>
-                            {index + 1}
-                          </div>
-                          <span className="text-xs text-gray-600 truncate max-w-[100px]">
-                            {page.path === '/' ? 'Inicio' : page.path}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-medium text-gray-700">{page.views}</span>
-                          <span className="text-xs text-gray-500 ml-1">({page.percentage}%)</span>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Sin stock</span>
+                      <span className="text-sm font-bold text-red-600">{realTimeData.outOfStockProducts || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Bajo stock</span>
+                      <span className="text-sm font-bold text-amber-600">{realTimeData.lowStockProducts || 0}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Países Visitantes</h4>
-                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-600">Geografía</span>
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Rendimiento</h4>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Métricas</span>
                   </div>
                   <div className="space-y-2">
-                    {realTimeData.countries.map((country) => (
-                      <div key={country.code} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium">{country.code}</span>
-                          <span className="text-xs text-gray-600">{country.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-12 bg-gray-200 rounded-full h-1.5">
-                            <div 
-                              className="bg-gradient-to-r from-purple-400 to-purple-600 h-1.5 rounded-full" 
-                              style={{width: `${country.percentage}%`}}
-                            ></div>
-                          </div>
-                          <span className="text-xs font-medium text-gray-700 w-8 text-right">{country.percentage}%</span>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Tasa Rebote</span>
+                      <span className="text-sm font-bold text-gray-900">{(realTimeData.bounceRate || 0).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Duración Sesión</span>
+                      <span className="text-sm font-bold text-gray-900">{Math.floor((realTimeData.avgSessionDuration || 0) / 60)}:{((realTimeData.avgSessionDuration || 0) % 60).toString().padStart(2, '0')}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl border border-gray-100 sm:dark:border-gray-800 bg-white sm:dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Dispositivos</h4>
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Devices</span>
+                    <h4 className="text-base font-semibold text-gray-900 sm:dark:text-white">Precio Promedio</h4>
+                    <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-600">Catálogo</span>
                   </div>
-                  <div className="space-y-3">
-                    {realTimeData.devices.map((device) => (
-                      <div key={device.type} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded flex items-center justify-center text-xs ${
-                            device.type === 'Desktop' ? 'bg-blue-100' :
-                            device.type === 'Mobile' ? 'bg-green-100' :
-                            'bg-amber-100'
-                          }`}>
-                            {device.type === 'Desktop' ? '🖥️' : device.type === 'Mobile' ? '📱' : '📋'}
-                          </div>
-                          <span className="text-xs text-gray-600">{device.type}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                            <div 
-                              className={`bg-gradient-to-r h-1.5 rounded-full ${
-                                device.type === 'Desktop' ? 'from-blue-400 to-blue-600' :
-                                device.type === 'Mobile' ? 'from-green-400 to-green-600' :
-                                'from-amber-400 to-amber-600'
-                              }`}
-                              style={{width: `${device.percentage}%`}}
-                            ></div>
-                          </div>
-                          <span className="text-xs font-medium text-gray-700 w-8 text-right">{device.percentage}%</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Por producto</span>
+                      <span className="text-sm font-bold text-gray-900">$ {(realTimeData.avgProductPrice || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Stock total</span>
+                      <span className="text-sm font-bold text-gray-900">{(realTimeData.totalStock || 0).toLocaleString('es-CL')} unidades</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Estado de Integración con Analytics */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+              {/* Métricas de Analytics */}
+              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10" />
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-base font-semibold text-gray-900">Vercel Analytics Conectado</h4>
-                      <p className="text-sm text-gray-600">Recibiendo métricas en tiempo real</p>
+                      <h4 className="text-base font-semibold text-gray-900">Estadísticas del Sitio</h4>
+                      <p className="text-sm text-gray-600">Métricas de tráfico y visitantes</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center gap-2 text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                       <span className="text-sm font-medium">Activo</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Última actualización: {new Date().toLocaleTimeString('es-CL')}</p>

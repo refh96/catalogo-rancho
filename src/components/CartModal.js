@@ -146,10 +146,26 @@ export default function CartModal({ isOpen, onClose }) {
   const isMorningSlotDisabled = isTodaySelected && isAfterOnePM;
   const isAfternoonSlotDisabled = isTodaySelected && isAfterSevenThirtyPM;
 
-  const sendWhatsAppMessage = (order) => {
+  const sendWhatsAppMessage = async (order) => {
     const productsText = cart.map(item => 
       `- ${item.quantity}x ${item.name} - $${item.price.toLocaleString('es-CL')} c/u`
     ).join('%0A');
+    
+    // Registrar pedido en el contador
+    try {
+      await fetch('/api/whatsapp-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderData: order,
+          cartItems: cart
+        })
+      });
+    } catch (error) {
+      console.error('Error registrando pedido:', error);
+    }
     
     const orderTypeText = order.orderType === 'delivery' ? 'Envío a domicilio' : 'Retiro en tienda';
     const comunaText = order.comuna ? ` (${order.comuna.charAt(0).toUpperCase() + order.comuna.slice(1)})` : '';

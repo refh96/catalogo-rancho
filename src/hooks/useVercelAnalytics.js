@@ -28,47 +28,38 @@ export function useVercelAnalytics() {
 
     initializeAnalytics();
 
-    // Simular datos reales de Vercel Analytics
-    // En producción, estos vendrían de la API de Vercel
+    // Obtener datos reales de Vercel Analytics
     const fetchAnalyticsData = async () => {
       try {
-        // Aquí irían las llamadas reales a la API de Vercel
-        // Por ahora, simulamos datos realistas
-        const mockData = {
-          visitors: 1247,
-          pageViews: 3841,
-          topPages: [
-            { path: '/', views: 892, percentage: 23.2 },
-            { path: '/perros', views: 456, percentage: 11.9 },
-            { path: '/gatos', views: 387, percentage: 10.1 },
-            { path: '/accesorios', views: 298, percentage: 7.8 },
-            { path: '/farmacia', views: 234, percentage: 6.1 }
-          ],
-          countries: [
-            { code: 'CL', name: 'Chile', visitors: 892, percentage: 71.5 },
-            { code: 'AR', name: 'Argentina', visitors: 156, percentage: 12.5 },
-            { code: 'MX', name: 'México', visitors: 98, percentage: 7.9 },
-            { code: 'PE', name: 'Perú', visitors: 67, percentage: 5.4 },
-            { code: 'CO', name: 'Colombia', visitors: 34, percentage: 2.7 }
-          ],
-          devices: [
-            { type: 'Desktop', count: 723, percentage: 58.0 },
-            { type: 'Mobile', count: 456, percentage: 36.6 },
-            { type: 'Tablet', count: 68, percentage: 5.4 }
-          ],
-          bounceRate: 32.4,
-          avgSessionDuration: 222 // en segundos
-        };
-
-        setRealTimeData(mockData);
+        const response = await fetch('/api/analytics');
+        const result = await response.json();
+        
+        if (result.success) {
+          setRealTimeData(result.data);
+          console.log('✅ Analytics actualizados:', result.timestamp);
+        } else {
+          console.error('❌ Error en analytics:', result.error);
+        }
       } catch (error) {
         console.error('Error fetching analytics:', error);
+        
+        // Fallback a datos mínimos si hay error
+        setRealTimeData({
+          visitors: 0,
+          pageViews: 0,
+          topPages: [],
+          countries: [],
+          devices: [],
+          bounceRate: 0,
+          avgSessionDuration: 0
+        });
       }
     };
 
+    // Cargar datos iniciales
     fetchAnalyticsData();
     
-    // Actualizar datos cada 30 segundos
+    // Actualizar datos cada 30 segundos para simular tiempo real
     const interval = setInterval(fetchAnalyticsData, 30000);
     
     return () => clearInterval(interval);
@@ -76,12 +67,10 @@ export function useVercelAnalytics() {
 
   const trackEvent = (eventName, properties = {}) => {
     if (typeof window !== 'undefined') {
-      // En producción, usar analytics.track()
-      console.log('Analytics Event:', eventName, properties);
-      
       // Importación dinámica para tracking
       import('@vercel/analytics').then(({ track }) => {
         track(eventName, properties);
+        console.log('📊 Event tracked:', eventName, properties);
       }).catch(error => {
         console.warn('Error al trackear evento:', error);
       });
@@ -90,12 +79,10 @@ export function useVercelAnalytics() {
 
   const trackPageView = (path) => {
     if (typeof window !== 'undefined') {
-      // En producción, usar analytics.track()
-      console.log('Page View:', path);
-      
       // Importación dinámica para page view
       import('@vercel/analytics').then(({ track }) => {
         track('pageview', { path });
+        console.log('📈 Page view tracked:', path);
       }).catch(error => {
         console.warn('Error al trackear page view:', error);
       });
