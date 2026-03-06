@@ -1933,7 +1933,7 @@ export default function Home() {
                 {/* Gráfica de Pastel Completa */}
                 <div className="flex justify-center mb-4">
                   <div className="relative w-48 h-48">
-                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <svg className="w-full h-full chart-svg" viewBox="0 0 100 100">
                       {realTimeData.categoryDistribution?.map((category, index) => {
                         const percentage = parseFloat(category.percentage) || 0;
                         const circumference = 2 * Math.PI * 45;
