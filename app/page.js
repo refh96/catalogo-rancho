@@ -316,6 +316,7 @@ export default function Home() {
   const [supportsNativeShare, setSupportsNativeShare] = useState(false);
   const [showScrollUp, setShowScrollUp] = useState(false);
   const [showScrollDown, setShowScrollDown] = useState(true);
+  const [stockFilter, setStockFilter] = useState('all'); // Nuevo filtro por cantidad de stock
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
@@ -1059,6 +1060,25 @@ export default function Home() {
       console.log('Productos después de filtrar:', result);
     }
 
+    // Filtrar por cantidad de stock
+    if (stockFilter !== 'all') {
+      result = result.filter(product => {
+        const stock = product.stock || 0;
+        switch (stockFilter) {
+          case 'out':
+            return stock === 0;
+          case 'low':
+            return stock > 0 && stock <= 5;
+          case 'medium':
+            return stock > 5 && stock <= 20;
+          case 'high':
+            return stock > 20;
+          default:
+            return true;
+        }
+      });
+    }
+
     // Ordenar
     if (sortBy === 'price-asc') {
       result = [...result].sort((a, b) => a.price - b.price);
@@ -1070,7 +1090,7 @@ export default function Home() {
     }
 
     return result;
-  }, [products, activeCategory, searchTerm, priceFilter, lifeStage, sortBy, letterFilter]);
+  }, [products, activeCategory, searchTerm, priceFilter, lifeStage, sortBy, letterFilter, stockFilter]);
 
   // Función para manejar el cambio de categoría
   const handleCategoryChange = (category) => {
@@ -1724,6 +1744,78 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Filtro por cantidad de stock (solo para usuarios logueados) */}
+              {user && (
+                <div className="space-y-2">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">Cantidad de Stock</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setStockFilter('all')}
+                      className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                        stockFilter === 'all'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      📦 Todos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStockFilter('out')}
+                      className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                        stockFilter === 'out'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🚫 Sin Stock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStockFilter('low')}
+                      className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                        stockFilter === 'low'
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      ⚠️ Bajo (1-5)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStockFilter('medium')}
+                      className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                        stockFilter === 'medium'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      📊 Medio (6-20)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStockFilter('high')}
+                      className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                        stockFilter === 'high'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      ✅ Alto (20+)
+                    </button>
+                  </div>
+                  {stockFilter !== 'all' && (
+                    <div className="mt-2 text-xs text-gray-600">
+                      {stockFilter === 'out' && 'Mostrando productos agotados'}
+                      {stockFilter === 'low' && 'Mostrando productos con stock bajo (crítico)'}
+                      {stockFilter === 'medium' && 'Mostrando productos con stock medio'}
+                      {stockFilter === 'high' && 'Mostrando productos con stock alto'}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Filtro alfabético */}
               <div className="space-y-2">
                 <label className="text-xs sm:text-sm font-medium text-gray-700">Filtrar por letra</label>
@@ -1822,6 +1914,19 @@ export default function Home() {
             <div className="mt-3 text-xs sm:text-sm text-gray-500">
               Mostrando {filteredProducts.length} {filteredProducts.length === 1 ? 'producto' : 'productos'}
               {searchTerm && ` para "${searchTerm}"`}
+              {stockFilter !== 'all' && user && (
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                  stockFilter === 'out' ? 'bg-red-100 text-red-700' :
+                  stockFilter === 'low' ? 'bg-amber-100 text-amber-700' :
+                  stockFilter === 'medium' ? 'bg-blue-100 text-blue-700' :
+                  'bg-green-100 text-green-700'
+                }`}>
+                  {stockFilter === 'out' && '🚫 Sin Stock'}
+                  {stockFilter === 'low' && '⚠️ Stock Bajo'}
+                  {stockFilter === 'medium' && '📊 Stock Medio'}
+                  {stockFilter === 'high' && '✅ Stock Alto'}
+                </span>
+              )}
             </div>
 
             <div className="mt-3 flex justify-end">
