@@ -17,6 +17,7 @@ const ProductCard = memo(({ product, onProductClick }) => {
       className="group flex-shrink-0 snap-center rounded-3xl border border-white/40 bg-white/10 backdrop-blur px-4 pb-4 w-[250px] sm:w-[280px] shadow-[0_15px_45px_rgba(15,23,42,0.12)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)]"
       style={{
         scrollSnapAlign: 'center',
+        scrollSnapStop: 'always',
         flex: '0 0 auto',
       }}
     >
@@ -75,6 +76,7 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
   const { products, loading, updateProduct } = useProducts();
   const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef(null);
 
   const featuredProducts = useMemo(() => {
@@ -84,11 +86,8 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       .filter((product) => product?.isFeatured);
   }, [products]);
 
-  // Triplicar productos para bucle infinito más robusto
-  const duplicatedProducts = useMemo(() => {
-    if (featuredProducts.length === 0) return [];
-    return [...featuredProducts, ...featuredProducts, ...featuredProducts];
-  }, [featuredProducts]);
+  // Duplicar productos para crear efecto infinito - Eliminado, ahora ciclo natural
+  const duplicatedProducts = featuredProducts; // Sin duplicación, ciclo natural
 
   useEffect(() => {
     if (!loading && featuredProducts.length === 0) {
@@ -124,154 +123,204 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
 
   const handleProductClick = (event, product) => {
     event?.preventDefault();
+    
+    // IMPORTANTE: No detener el ciclo del carrusel al hacer clic en producto
+    // Solo llamar a onProductSelect sin afectar el auto-scroll
+    
+    // Llamar a la función del padre sin detener el carrusel
     if (onProductSelect) {
       onProductSelect(product);
     }
+    
+    // No hacer nada más - dejar que el ciclo continúe normalmente
+    // El usuario puede hacer clic sin detener el auto-scroll
   };
 
-  const scrollCarousel = (direction = 'right', targetIndex = null) => {
-    const container = scrollRef.current;
-    if (!container) return;
-    
-    const isMobile = window.innerWidth < 640;
-    const containerWidth = container.clientWidth;
-    const cardWidth = isMobile ? 250 : 280;
-    const gap = isMobile ? 16 : 24;
-    const totalCardWidth = cardWidth + gap;
-    
-    if (direction === 'reset') {
-      container.scrollTo({ left: 0, behavior: 'smooth' });
-      return;
-    }
-    
-    if (isMobile && typeof targetIndex === 'number') {
-      // En móviles, centrar el elemento objetivo
-      const targetScroll = (targetIndex * totalCardWidth) - (containerWidth / 2) + (cardWidth / 2);
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const boundedScroll = Math.max(0, Math.min(targetScroll, maxScroll));
-      
-      container.scrollTo({
-        left: boundedScroll,
-        behavior: 'smooth'
-      });
-    } else {
-      // En escritorio o para navegación básica
-      const scrollAmount = direction === 'left' ? -totalCardWidth : totalCardWidth;
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
+  // Sistema de movimiento profesional y robusto - Arquitectura limpia
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || featuredProducts.length <= 1) return;
 
+    // Estado local simple
+    let autoScrollTimer = null;
+    let isUserInteracting = false;
+    let isTransitioning = false;
+    let currentLocalIndex = 0;
     let touchStartX = 0;
-    let touchEndX = 0;
-    let isScrolling = false;
-    let animationId;
-    let scrollSpeed = 5; // píxeles por frame
+    let isDragging = false;
 
     const isMobile = window.innerWidth < 640;
     const cardWidth = isMobile ? 250 : 280;
     const gap = isMobile ? 16 : 24;
     const totalCardWidth = cardWidth + gap;
 
-    // Manejar el inicio del toque
+    // Cálculo de posición simple y robusto
+    const calculateScrollPosition = (targetIndex) => {
+      const containerWidth = container.clientWidth;
+      const targetScroll = (targetIndex * totalCardWidth) - (containerWidth / 2) + (cardWidth / 2);
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      return Math.max(0, Math.min(targetScroll, maxScroll));
+    };
+
+    // Movimiento simple y confiable
+    const moveToIndex = (targetIndex, smooth = true) => {
+      if (isTransitioning) return;
+      
+      isTransitioning = true;
+      currentLocalIndex = targetIndex;
+      setCurrentIndex(targetIndex);
+      
+      container.scrollTo({
+        left: calculateScrollPosition(targetIndex),
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+      
+      setTimeout(() => {
+        isTransitioning = false;
+        if (!isUserInteracting) {
+          startAutoScroll();
+        }
+      }, 500);
+    };
+
+    // Auto-scroll simple y profesional
+    const startAutoScroll = () => {
+      if (autoScrollTimer) clearTimeout(autoScrollTimer);
+      
+      autoScrollTimer = setTimeout(() => {
+        if (!isUserInteracting && !isTransitioning) {
+          const nextIndex = (currentLocalIndex + 1) % featuredProducts.length;
+          moveToIndex(nextIndex);
+        }
+        startAutoScroll();
+      }, isMobile ? 2500 : 3000);
+    };
+
+    const stopAutoScroll = () => {
+      if (autoScrollTimer) {
+        clearTimeout(autoScrollTimer);
+        autoScrollTimer = null;
+      }
+    };
+
+    // Touch handlers profesionales
     const handleTouchStart = (e) => {
       touchStartX = e.touches[0].clientX;
-      isScrolling = true;
-      cancelAnimationFrame(animationId);
+      isDragging = true;
+      isUserInteracting = true;
+      stopAutoScroll();
+      container.style.overflowY = 'hidden';
     };
 
-    // Manejar el movimiento del toque
     const handleTouchMove = (e) => {
-      if (!isScrolling) return;
-      touchEndX = e.touches[0].clientX;
-      if (Math.abs(touchStartX - touchEndX) > 10) {
+      if (!isDragging) return;
+      
+      const deltaX = e.touches[0].clientX - touchStartX;
+      if (Math.abs(deltaX) > 10) {
         e.preventDefault();
-      }
-    };
-
-    // Manejar el final del toque
-    const handleTouchEnd = () => {
-      if (!isScrolling) return;
-      
-      const touchDiff = touchStartX - touchEndX;
-      
-      if (Math.abs(touchDiff) > 10) {
-        if (touchDiff > 0) {
-          // Deslizar hacia la izquierda - siguiente producto
-          scrollCarousel('right');
-          const currentScroll = container.scrollLeft;
-          const containerWidth = container.clientWidth;
-          const centerPosition = currentScroll + (containerWidth / 2);
-          const currentIndex = Math.round(centerPosition / totalCardWidth);
-          
-          let targetIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
-          targetIndex = Math.max(0, Math.min(targetIndex, featuredProducts.length - 1));
-          
-          scrollCarousel(null, targetIndex);
-        } else {
-          // Si el deslizamiento fue corto, centrar el elemento actual
-          const currentScroll = container.scrollLeft;
-          const centerPosition = currentScroll + (container.clientWidth / 2);
-          const currentIndex = Math.round(centerPosition / totalCardWidth);
-          scrollCarousel(null, currentIndex);
-        }
-      }
-      
-      isScrolling = false;
-      startAutoScroll();
-    };
-
-    // Iniciar el movimiento perpetuo
-    const startPerpetualScroll = () => {
-      cancelAnimationFrame(animationId);
-      
-      const animate = () => {
-        if (isScrolling) {
-          animationId = requestAnimationFrame(animate);
-          return;
-        }
-        
         const currentScroll = container.scrollLeft;
-        const containerWidth = container.clientWidth;
-        const maxScroll = container.scrollWidth - container.clientWidth;
-        
-        // Movimiento perpetuo con reinicio forzado
-        const newScroll = currentScroll + scrollSpeed;
-        
-        // Reinicio forzado al inicio cuando llega al final
-        if (newScroll >= maxScroll) {
-          // Forzar reinicio completo
-          container.scrollTo({ left: 0, behavior: 'instant' });
-        } else {
-          container.scrollLeft = newScroll;
-        }
-        
-        animationId = requestAnimationFrame(animate);
-      };
-      
-      animationId = requestAnimationFrame(animate);
+        container.scrollLeft = currentScroll - (deltaX * 0.3);
+      }
     };
 
-    // Configurar eventos táctiles solo en móviles
+    const handleTouchEnd = (e) => {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      container.style.overflowY = '';
+      
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      const swipeThreshold = isMobile ? 50 : 80;
+      
+      if (Math.abs(deltaX) > swipeThreshold) {
+        let targetIndex;
+        if (deltaX > 0) {
+          targetIndex = currentLocalIndex === 0 ? featuredProducts.length - 1 : currentLocalIndex - 1;
+        } else {
+          targetIndex = (currentLocalIndex + 1) % featuredProducts.length;
+        }
+        moveToIndex(targetIndex);
+      } else {
+        moveToIndex(currentLocalIndex, true);
+      }
+      
+      setTimeout(() => {
+        isUserInteracting = false;
+        startAutoScroll();
+      }, 1000);
+    };
+
+    // Mouse handlers profesionales
+    const handleMouseEnter = () => {
+      if (!isMobile) {
+        isUserInteracting = true;
+        stopAutoScroll();
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (!isMobile) {
+        isUserInteracting = false;
+        startAutoScroll();
+      }
+    };
+
+    // Indicadores profesionales
+    const handleIndicatorClick = (e) => {
+      const targetIndex = parseInt(e.target.dataset.index);
+      if (targetIndex >= 0 && targetIndex < featuredProducts.length) {
+        isUserInteracting = true;
+        moveToIndex(targetIndex);
+        
+        setTimeout(() => {
+          isUserInteracting = false;
+          startAutoScroll();
+        }, 1000);
+      }
+    };
+
+    // Event listeners profesionales
     if (isMobile) {
       container.addEventListener('touchstart', handleTouchStart, { passive: false });
       container.addEventListener('touchmove', handleTouchMove, { passive: false });
       container.addEventListener('touchend', handleTouchEnd, { passive: true });
+      container.addEventListener('gesturestart', (e) => e.preventDefault());
+      container.addEventListener('gesturechange', (e) => e.preventDefault());
+    } else {
+      container.addEventListener('mouseenter', handleMouseEnter);
+      container.addEventListener('mouseleave', handleMouseLeave);
     }
-    
-    // Iniciar movimiento perpetuo
-    startPerpetualScroll();
 
+    container.addEventListener('click', handleIndicatorClick);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopAutoScroll();
+      } else {
+        setTimeout(() => startAutoScroll(), 500);
+      }
+    });
+
+    // Inicialización profesional
+    moveToIndex(0, false);
+    setTimeout(() => startAutoScroll(), 1000);
+
+    // Cleanup profesional
     return () => {
-      cancelAnimationFrame(animationId);
+      stopAutoScroll();
+      
       if (isMobile) {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
         container.removeEventListener('touchend', handleTouchEnd);
+        container.removeEventListener('gesturestart', (e) => e.preventDefault());
+        container.removeEventListener('gesturechange', (e) => e.preventDefault());
+      } else {
+        container.removeEventListener('mouseenter', handleMouseEnter);
+        container.removeEventListener('mouseleave', handleMouseLeave);
       }
+      
+      container.removeEventListener('click', handleIndicatorClick);
+      container.style.overflowY = '';
     };
   }, [featuredProducts.length]);
 
@@ -354,12 +403,13 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
         <div className="relative mt-8">
           <div
             ref={scrollRef}
-            className="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0"
+            className="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide px-4 sm:px-0 snap-x snap-mandatory"
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollBehavior: 'smooth',
               msOverflowStyle: 'none',
               scrollbarWidth: 'none',
+              scrollSnapType: 'x mandatory', // Snap exacto a productos
             }}
           >
             {duplicatedProducts.map((product, index) => (
@@ -370,6 +420,64 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
               />
             ))}
           </div>
+
+          {/* Indicadores de progreso mejorados - Optimizados para móvil */}
+          {featuredProducts.length > 1 && (
+            <div className="mt-6 flex justify-center gap-2 px-4">
+              {featuredProducts.map((_, index) => (
+                <button
+                  key={`indicator-${index}`}
+                  data-indicator={index}
+                  onClick={() => {
+                    const container = scrollRef.current;
+                    if (!container) return;
+                    
+                    const isMobile = window.innerWidth < 640;
+                    const cardWidth = isMobile ? 250 : 280;
+                    const gap = isMobile ? 16 : 24;
+                    const totalCardWidth = cardWidth + gap;
+                    const containerWidth = container.clientWidth;
+                    
+                    const targetScroll = (index * totalCardWidth) - (containerWidth / 2) + (cardWidth / 2);
+                    const maxScroll = container.scrollWidth - container.clientWidth;
+                    const boundedScroll = Math.max(0, Math.min(targetScroll, maxScroll));
+                    
+                    // Actualizar estado inmediatamente
+                    setCurrentIndex(index);
+                    
+                    // Detener movimiento automático temporalmente
+                    const stopAutoScrollTemporarily = () => {
+                      const event = new CustomEvent('userInteraction', { detail: { index } });
+                      container.dispatchEvent(event);
+                    };
+                    
+                    stopAutoScrollTemporarily();
+                    
+                    container.scrollTo({
+                      left: boundedScroll,
+                      behavior: 'smooth'
+                    });
+                  }}
+                  className={`transition-all duration-300 ${
+                    window.innerWidth < 640 
+                      ? `w-3 h-3 rounded-full ${
+                          index === currentIndex % featuredProducts.length
+                            ? 'bg-indigo-600 shadow-md shadow-indigo-600/30 scale-125'
+                            : 'bg-gray-300 hover:bg-gray-400 hover:scale-110'
+                        }`
+                      : `w-2 h-2 rounded-full hover:scale-110 ${
+                          index === currentIndex % featuredProducts.length
+                            ? 'bg-indigo-600 w-8 shadow-lg shadow-indigo-600/30'
+                            : 'bg-gray-300 hover:bg-gray-400'
+                        }`
+                  }`}
+                  aria-label={`Ir al producto ${index + 1}`}
+                  aria-current={index === currentIndex % featuredProducts.length ? 'true' : 'false'}
+                  style={{ touchAction: 'manipulation' }} // Prevenir zoom en móvil
+                />
+              ))}
+            </div>
+          )}
 
           <div className="mt-6 sm:mt-7 lg:mt-8 px-2 sm:px-4">
             <div className="relative h-1.5 sm:h-2 rounded-full bg-white/35 border border-white/50 backdrop-blur-xl overflow-hidden shadow-[0_10px_25px_rgba(15,23,42,0.08)]">

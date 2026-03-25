@@ -16,6 +16,14 @@ export default function ProductoPage({ params }) {
   const { user } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [showFullComposition, setShowFullComposition] = useState(false);
+  const [showFullFeedingGuide, setShowFullFeedingGuide] = useState(false);
+
+  // Función para truncar texto a un máximo de caracteres
+  const truncateText = (text, maxLength = 150) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
   
   useEffect(() => {
     const loadProduct = async () => {
@@ -179,7 +187,24 @@ export default function ProductoPage({ params }) {
                           <div className="flex-1">
                             <h4 className="text-lg font-bold text-green-800 mb-2">Composición</h4>
                             <div className="bg-white/60 rounded-lg p-3">
-                              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{selectedProduct.details.composition}</p>
+                              {/* Versión móvil con truncamiento */}
+                              <div className="md:hidden">
+                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                                  {showFullComposition ? selectedProduct.details.composition : truncateText(selectedProduct.details.composition)}
+                                </p>
+                                {selectedProduct.details.composition.length > 150 && (
+                                  <button
+                                    onClick={() => setShowFullComposition(!showFullComposition)}
+                                    className="mt-3 text-green-600 hover:text-green-800 text-sm font-medium transition-colors focus:outline-none focus:underline"
+                                  >
+                                    {showFullComposition ? 'Ver menos' : 'Ver más'}
+                                  </button>
+                                )}
+                              </div>
+                              {/* Versión escritorio - texto completo */}
+                              <div className="hidden md:block">
+                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{selectedProduct.details.composition}</p>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -247,28 +272,69 @@ export default function ProductoPage({ params }) {
                           <div className="flex-1">
                             <h4 className="text-lg font-bold text-purple-800 mb-2">Guía de Ración Diaria</h4>
                             <div className="bg-white/60 rounded-lg p-3">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-gray-200">
-                                    {selectedProduct.details.feedingGuideTable.columns.map((col, index) => (
-                                      <th key={index} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">
-                                        {col}
-                                      </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {selectedProduct.details.feedingGuideTable.rows.map((row, index) => (
-                                    <tr key={index} className="border-b border-gray-100">
-                                      {row.values.map((value, idx) => (
-                                        <td key={idx} className="px-3 py-2 text-gray-900">
-                                          {value}
-                                        </td>
+                              {/* Diseño Móvil: Cards apilados optimizados con truncamiento */}
+                              <div className="md:hidden space-y-3">
+                                {selectedProduct.details.feedingGuideTable.rows
+                                  .slice(0, showFullFeedingGuide ? undefined : 2)
+                                  .map((row, rowIndex) => (
+                                    <div key={rowIndex} className="bg-white/90 rounded-lg p-4 shadow-sm border border-purple-100">
+                                      {/* Título de la fila (primera columna) */}
+                                      <div className="font-bold text-purple-800 mb-3 text-base">
+                                        {row.values[0]}
+                                      </div>
+                                      
+                                      {/* Resto de las columnas como pares clave-valor */}
+                                      <div className="space-y-2">
+                                        {row.values.slice(1).map((value, colIndex) => (
+                                          <div key={colIndex} className="flex justify-between items-start py-2 border-b border-purple-50 last:border-0">
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">
+                                                {selectedProduct.details.feedingGuideTable.columns[colIndex + 1]}
+                                              </span>
+                                              <span className="text-sm font-medium text-gray-900 text-right block">
+                                                {value}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                {/* Botón Ver más/menos */}
+                                {selectedProduct.details.feedingGuideTable.rows.length > 2 && (
+                                  <button
+                                    onClick={() => setShowFullFeedingGuide(!showFullFeedingGuide)}
+                                    className="w-full mt-3 text-purple-600 hover:text-purple-800 text-sm font-medium transition-colors focus:outline-none focus:underline py-2 px-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100"
+                                  >
+                                    {showFullFeedingGuide ? 'Ver menos' : `Ver más (${selectedProduct.details.feedingGuideTable.rows.length - 2} filas más)`}
+                                  </button>
+                                )}
+                              </div>
+                              {/* Diseño Escritorio: Tabla */}
+                              <div className="hidden md:block">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b border-gray-200">
+                                      {selectedProduct.details.feedingGuideTable.columns.map((col, index) => (
+                                        <th key={index} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">
+                                          {col}
+                                        </th>
                                       ))}
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    {selectedProduct.details.feedingGuideTable.rows.map((row, index) => (
+                                      <tr key={index} className="border-b border-gray-100">
+                                        {row.values.map((value, idx) => (
+                                          <td key={idx} className="px-3 py-2 text-gray-900">
+                                            {value}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
                             </div>
                           </div>
                         </div>
