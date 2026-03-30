@@ -196,15 +196,15 @@ export default function CartModal({ isOpen, onClose }) {
 
     if (order.orderType === 'delivery' && order.comuna) {
       if (order.comuna === 'hualpen') {
-        if (subtotal >= 15000) {
-          shippingMessage = '*¡Envío gratis por compra sobre $15.000 en Hualpén!*%0A';
+        if (subtotal >= 20000) {
+          shippingMessage = '*¡Envío gratis por compra sobre $20.000 en Hualpén!*%0A';
         } else {
           shippingCost = 1000;
           shippingMessage = '*Costo de envío (Hualpén):* $1.000%0A';
         }
       } else {
-        shippingCost = 2000;
-        shippingMessage = `*Costo de envío (${order.comuna.charAt(0).toUpperCase() + order.comuna.slice(1)}):* $2.000%0A`;
+        shippingCost = 2500;
+        shippingMessage = `*Costo de envío (${order.comuna.charAt(0).toUpperCase() + order.comuna.slice(1)}):* $2.500%0A`;
       }
     }
     
@@ -378,7 +378,7 @@ export default function CartModal({ isOpen, onClose }) {
                 </div>
                 {orderType === 'delivery' && (
                   <div className="text-sm text-gray-600 text-center mt-2">
-                    * Envío gratis en Hualpén para pedidos sobre $15.000
+                    * Envío gratis en Hualpén para pedidos sobre $20.000
                   </div>
                 )}
                 <button
@@ -687,7 +687,7 @@ export default function CartModal({ isOpen, onClose }) {
                     </div>
                     {orderType === 'delivery' && (
                       <div className="text-sm text-gray-600 text-center mt-2">
-                        * Envío gratis en Hualpén para pedidos sobre $15.000
+                        * Envío gratis en Hualpén para pedidos sobre $20.000
                       </div>
                     )}
                     <div className="flex space-x-3 mt-4">
