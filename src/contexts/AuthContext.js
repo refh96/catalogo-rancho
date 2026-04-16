@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   const login = (username, password) => {
-    if (username === 'admin' && password === 'RanchoMascotas2024!') {
+    if (username === 'admin' && password === 'ranchomascotas2026.....') {
       const user = { username, role: 'admin' };
       setUser(user);
       return { success: true };

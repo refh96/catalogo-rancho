@@ -11,6 +11,8 @@ import WhatsAppButton from '../src/components/WhatsAppButton';
 import FloatingCartButton from '../src/components/FloatingCartButton';
 import BarcodeScanner from '../src/components/BarcodeScannerClient';
 import TextScannerModal from '../src/components/TextScannerModal';
+import BackupManager from '../src/components/BackupManager';
+import ExcelExporter from '../src/components/ExcelExporter';
 import dynamic from 'next/dynamic';
 import { useVercelAnalytics } from '../src/hooks/useVercelAnalytics';
 
@@ -3792,6 +3794,10 @@ export default function Home() {
       <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       {/* Botón flotante de WhatsApp */}
       <WhatsAppButton />
+      {/* Sistema de Backup - Solo visible para administrador */}
+      <BackupManager />
+      {/* Sistema de Exportación Excel - Solo visible para administrador */}
+      <ExcelExporter />
       
       {/* Estilos para el slider */}
       <style jsx>{`
