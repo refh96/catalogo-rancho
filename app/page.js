@@ -48,10 +48,13 @@ const createEmptyAccessorySpecs = () => ({
 });
 
 const createEmptyPharmacyInfo = () => ({
-  productType: '',
-  indications: '',
-  usage: '',
-  contraindications: ''
+  veterinaryUse: false,
+  prescriptionRequired: false,
+  warnings: [],
+  contraindications: [],
+  sideEffects: [],
+  storageConditions: '',
+  activeIngredients: []
 });
 
 const createEmptyDetails = () => ({
@@ -74,6 +77,17 @@ const createEmptyFormData = (category = 'perros') => ({
   barcode: '',
   details: createEmptyDetails()
 });
+
+// Función para generar slugs amigables para URLs (debe coincidir con la lógica de ProductContext)
+const generateSlug = (text) => {
+  if (!text) return '';
+  
+  // Usar exactamente la misma lógica que getProductBySlug en ProductContext
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
 
 const normalizeFeedingGuideTable = (table) => {
   if (
@@ -395,35 +409,15 @@ export default function Home() {
         return null;
       }
 
-      const shareUrl = new URL(window.location.origin + window.location.pathname);
-      const anchorId = getProductAnchorId(product);
-      if (anchorId) {
-        shareUrl.hash = anchorId;
-      }
-
-      const categoryForShare = product.category || activeCategory || 'otros';
-      if (categoryForShare) {
-        shareUrl.searchParams.set('categoria', categoryForShare);
-      }
-
-      if (product.id) {
-        shareUrl.searchParams.set('productoId', product.id);
-      } else if (product.barcode) {
-        shareUrl.searchParams.set('barcode', product.barcode);
-      } else if (anchorId) {
-        shareUrl.searchParams.set('producto', anchorId.replace('product-card-', ''));
-      }
-
-      if (product.name) {
-        shareUrl.searchParams.set('buscar', product.name);
-        shareUrl.searchParams.set('productoNombre', product.name);
-      }
+      // Generar enlace directo a la página de detalles del producto
+      const productSlug = product.slug || generateSlug(product.name);
+      const shareUrl = new URL(`${window.location.origin}/producto/${productSlug}`);
 
       const hasPrice = typeof product.price === 'number' && !Number.isNaN(product.price);
       const priceSnippet = hasPrice ? ` por $${Number(product.price).toLocaleString('es-CL')}` : '';
       const shareTextBase = product.name
-        ? `${product.name} • Rancho Mascotas${priceSnippet}`
-        : `Rancho Mascotas${priceSnippet}`;
+        ? `${product.name} - Rancho Mascotas${priceSnippet}`
+        : `Producto - Rancho Mascotas${priceSnippet}`;
       const shareMessage = `${shareTextBase}\n${shareUrl.toString()}`;
 
       return {
@@ -2472,16 +2466,17 @@ export default function Home() {
                       {hasDetails ? (
                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-100 shadow-sm">
                           <p className="text-[12px] font-semibold mb-2">{detailCardLabel}</p>
-                          <button
-                            type="button"
-                            onClick={() => navigateToProduct(product)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white dark:text-white btn-text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+                          <Link
+                            href={`/producto/${product.slug || generateSlug(product.name)}`}
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white dark:text-white btn-text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition-colors duration-200"
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
                             <span className="btn-text-white-text">Ver detalles completos</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H5m14 0h-4m0 0V8m0 4v4" />
                             </svg>
-                          </button>
+                          </Link>
                         </div>
                       ) : (
                         <div className="text-xs bg-gradient-to-br from-gray-50 via-white to-white border border-gray-100 rounded-2xl p-4 h-fit shadow-sm dark:bg-gray-900/60 dark:border-gray-700">

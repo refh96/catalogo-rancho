@@ -37,17 +37,46 @@ export function CartProvider({ children }) {
     }
   }, [cart]);
 
+  // Sincronizar carrito entre pestañas en tiempo real
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'petStoreCart') {
+        try {
+          const newCart = e.newValue ? JSON.parse(e.newValue) : [];
+          setCart(newCart);
+        } catch (error) {
+          console.warn('Error sincronizando carrito:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const addToCart = (product) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
+      let newCart;
+      
       if (existingItem) {
-        return prevCart.map(item =>
+        newCart = prevCart.map(item =>
           item.id === product.id 
             ? { ...item, quantity: (item.quantity || 1) + 1 }
             : item
         );
+      } else {
+        newCart = [...prevCart, { ...product, quantity: 1 }];
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      
+      // Emitir evento personalizado para sincronización instantánea
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: newCart }));
+      }
+      
+      return newCart;
     });
   };
 

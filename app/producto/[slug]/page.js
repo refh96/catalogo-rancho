@@ -310,30 +310,42 @@ export default function ProductoPage({ params }) {
                                   </button>
                                 )}
                               </div>
-                              {/* Diseño Escritorio: Tabla */}
+                              {/* Diseño Escritorio: Tabla con scroll horizontal forzado */}
                               <div className="hidden md:block">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b border-gray-200">
-                                      {selectedProduct.details.feedingGuideTable.columns.map((col, index) => (
-                                        <th key={index} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">
-                                          {col}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {selectedProduct.details.feedingGuideTable.rows.map((row, index) => (
-                                      <tr key={index} className="border-b border-gray-100">
-                                        {row.values.map((value, idx) => (
-                                          <td key={idx} className="px-3 py-2 text-gray-900">
-                                            {value}
-                                          </td>
+                                <div className="w-full max-w-[500px] overflow-x-auto overflow-y-hidden rounded-lg border border-gray-200 shadow-sm bg-white">
+                                  <table className="w-full text-xs" style={{ minWidth: 'max-content' }}>
+                                    <thead className="bg-gray-50">
+                                      <tr className="border-b border-gray-200">
+                                        {selectedProduct.details.feedingGuideTable.columns.map((col, index) => (
+                                          <th key={index} className="px-2 py-2 text-left font-semibold text-gray-700 border-b border-gray-200 whitespace-nowrap bg-gray-50" style={{ minWidth: '70px' }}>
+                                            {col}
+                                          </th>
                                         ))}
                                       </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                      {selectedProduct.details.feedingGuideTable.rows.map((row, index) => (
+                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                          {row.values.map((value, idx) => (
+                                            <td key={idx} className="px-2 py-2 text-gray-900 whitespace-nowrap border-r border-gray-100 last:border-r-0" style={{ minWidth: '70px' }}>
+                                              {value}
+                                            </td>
+                                          ))}
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                
+                                {/* Indicador de scroll si hay muchas columnas */}
+                                {selectedProduct.details.feedingGuideTable.columns.length > 8 && (
+                                  <div className="mt-3 text-xs text-purple-700 text-center flex items-center justify-center space-x-2 bg-purple-50 rounded-lg py-2 px-3 border border-purple-200">
+                                    <svg className="w-3 h-3 text-purple-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                    <span className="font-medium">Desliza para ver más columnas</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
