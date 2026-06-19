@@ -139,7 +139,9 @@ export default function OfertasPage() {
       </div>
 
       {/* Featured Products Carousel */}
-      <FeaturedProductsCarousel onProductSelect={navigateToProduct} />
+      <div className="mb-20">
+        <FeaturedProductsCarousel onProductSelect={navigateToProduct} />
+      </div>
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-auto">
