@@ -167,4 +167,148 @@ body {
     fill: #ffffff !important;
     stroke: #ffffff !important;
   }
+  
+  /* Hero section - asegurar texto blanco */
+  .hero-text-white,
+  .hero-text-white *,
+  .hero-text-white h1,
+  .hero-text-white h2,
+  .hero-text-white h3,
+  .hero-text-white h4,
+  .hero-text-white h5,
+  .hero-text-white h6,
+  .hero-text-white p,
+  .hero-text-white span,
+  .hero-text-white div,
+  .hero-text-white a {
+    color: #ffffff !important;
+  }
+  
+  .hero-text-white .text-lg,
+  .hero-text-white .font-bold,
+  .hero-text-white .text-3xl,
+  .hero-text-white .text-4xl,
+  .hero-text-white .text-5xl,
+  .hero-text-white .text-6xl,
+  .hero-text-white .text-base,
+  .hero-text-white .font-extrabold {
+    color: #ffffff !important;
+  }
+  
+  /* Sobrescribir reglas globales específicas para hero */
+  .hero-text-white.text-lg,
+  .hero-text-white.font-bold {
+    color: #ffffff !important;
+  }
+  
+  .hero-text-gradient {
+    background: linear-gradient(to right, #fde047, #fb923c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+  }
+  
+  .hero-text-gradient.text-lg,
+  .hero-text-gradient.font-bold,
+  .hero-text-gradient.font-extrabold {
+    background: linear-gradient(to right, #fde047, #fb923c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+  }
+  
+  /* Reglas específicas para desktop */
+  @media (min-width: 1025px) {
+    .hero-text-white,
+    .hero-text-white *,
+    .hero-text-white h1,
+    .hero-text-white p,
+    .hero-text-white span {
+      color: #ffffff !important;
+    }
+    
+    .hero-text-white .text-lg,
+    .hero-text-white .font-bold,
+    .hero-text-white .text-3xl,
+    .hero-text-white .text-4xl,
+    .hero-text-white .text-5xl,
+    .hero-text-white .text-6xl,
+    .hero-text-white .text-base,
+    .hero-text-white .font-extrabold {
+      color: #ffffff !important;
+    }
+    
+    .hero-text-gradient {
+      background: linear-gradient(to right, #fde047, #fb923c) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+      color: transparent !important;
+    }
+  }
+}
+
+/* Reglas basadas en ID para máxima especificidad */
+#hero-section h1,
+#hero-section h1 *,
+#hero-section h1 span,
+#hero-section h1 .text-3xl,
+#hero-section h1 .text-4xl,
+#hero-section h1 .text-5xl,
+#hero-section h1 .text-6xl,
+#hero-section h1 .font-extrabold,
+#hero-section h1 .font-bold {
+  color: #ffffff !important;
+}
+
+#hero-section p,
+#hero-section p *,
+#hero-section p .text-base,
+#hero-section p .text-lg,
+#hero-section p .text-xl,
+#hero-section p .text-2xl {
+  color: #ffffff !important;
+}
+
+#hero-section .hero-text-gradient,
+#hero-section .hero-text-gradient *,
+#hero-section .hero-text-gradient.text-lg,
+#hero-section .hero-text-gradient.font-bold,
+#hero-section .hero-text-gradient.font-extrabold {
+  background: linear-gradient(to right, #fde047, #fb923c) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Media queries específicos para tabletas */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .hero-text-white,
+  .hero-text-white *,
+  .hero-text-white h1,
+  .hero-text-white h2,
+  .hero-text-white p,
+  .hero-text-white span {
+    color: #ffffff !important;
+  }
+  
+  .hero-text-white .text-lg,
+  .hero-text-white .font-bold,
+  .hero-text-white .text-3xl,
+  .hero-text-white .text-4xl,
+  .hero-text-white .text-5xl,
+  .hero-text-white .text-base {
+    color: #ffffff !important;
+  }
+  
+  .hero-text-gradient {
+    background: linear-gradient(to right, #fde047, #fb923c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+  }
 }

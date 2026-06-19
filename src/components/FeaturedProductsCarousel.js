@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useProducts } from '@/contexts/ProductContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
@@ -45,6 +45,40 @@ const customStyles = `
   .snap-center-custom {
     scroll-snap-align: center;
     scroll-snap-stop: always;
+  }
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .carousel-track {
+    display: flex;
+    gap: 1.5rem;
+    animation: scroll 30s linear infinite;
+    width: max-content;
+  }
+
+  .carousel-track:hover {
+    animation-play-state: paused;
+  }
+
+  @media (min-width: 640px) {
+    .carousel-track {
+      gap: 2rem;
+      animation-duration: 35s;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .carousel-track {
+      gap: 2.5rem;
+      animation-duration: 40s;
+    }
   }
 `;
 
@@ -127,8 +161,6 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
   const { products, loading, updateProduct } = useProducts();
   const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollRef = useRef(null);
 
   const featuredProducts = useMemo(() => {
     if (!products) return [];
@@ -137,8 +169,12 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
       .filter((product) => product?.isFeatured);
   }, [products]);
 
-  // Duplicar productos para crear efecto infinito - Eliminado, ahora ciclo natural
-  const duplicatedProducts = featuredProducts; // Sin duplicación, ciclo natural
+  // Duplicar productos para crear efecto infinito con animación CSS
+  const duplicatedProducts = useMemo(() => {
+    if (featuredProducts.length === 0) return [];
+    // Duplicar suficientes veces para crear efecto infinito fluido
+    return [...featuredProducts, ...featuredProducts, ...featuredProducts];
+  }, [featuredProducts]);
 
   useEffect(() => {
     if (!loading && featuredProducts.length === 0) {
@@ -187,101 +223,8 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
     // El usuario puede hacer clic sin detener el auto-scroll
   };
 
-  // Sistema de movimiento simple y ordenado - solo hacia adelante
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || featuredProducts.length <= 1) return;
-
-    let autoScrollTimer = null;
-    let isUserInteracting = false;
-    let currentLocalIndex = 0;
-
-    const isMobile = window.innerWidth < 640;
-    const cardWidth = isMobile ? 250 : isMobile && window.innerWidth >= 640 ? 280 : 300;
-    const gap = isMobile ? 24 : window.innerWidth >= 640 && window.innerWidth < 1024 ? 32 : 40;
-    const totalCardWidth = cardWidth + gap;
-
-    // Cálculo de posición simple
-    const calculateScrollPosition = (targetIndex) => {
-      const containerWidth = container.clientWidth;
-      const targetScroll = (targetIndex * totalCardWidth) - (containerWidth / 2) + (cardWidth / 2);
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      return Math.max(0, Math.min(targetScroll, maxScroll));
-    };
-
-    // Movimiento simple - solo hacia adelante
-    const moveToNext = () => {
-      const nextIndex = (currentLocalIndex + 1) % featuredProducts.length;
-      currentLocalIndex = nextIndex;
-      setCurrentIndex(nextIndex);
-      
-      container.scrollTo({
-        left: calculateScrollPosition(nextIndex),
-        behavior: 'smooth'
-      });
-    };
-
-    // Auto-scroll simple y consistente
-    const startAutoScroll = () => {
-      if (autoScrollTimer) clearTimeout(autoScrollTimer);
-      
-      autoScrollTimer = setTimeout(() => {
-        if (!isUserInteracting) {
-          moveToNext();
-          startAutoScroll(); // Continuar el ciclo
-        }
-      }, isMobile ? 3000 : 4000);
-    };
-
-    const stopAutoScroll = () => {
-      if (autoScrollTimer) {
-        clearTimeout(autoScrollTimer);
-        autoScrollTimer = null;
-      }
-    };
-
-    // Event listeners simples
-    const handleMouseEnter = () => {
-      isUserInteracting = true;
-      stopAutoScroll();
-    };
-
-    const handleMouseLeave = () => {
-      isUserInteracting = false;
-      startAutoScroll();
-    };
-
-    // Touch events para móvil
-    const handleTouchStart = () => {
-      isUserInteracting = true;
-      stopAutoScroll();
-    };
-
-    const handleTouchEnd = () => {
-      setTimeout(() => {
-        isUserInteracting = false;
-        startAutoScroll();
-      }, 2000);
-    };
-
-    // Agregar event listeners
-    container.addEventListener('mouseenter', handleMouseEnter);
-    container.addEventListener('mouseleave', handleMouseLeave);
-    container.addEventListener('touchstart', handleTouchStart);
-    container.addEventListener('touchend', handleTouchEnd);
-
-    // Iniciar movimiento
-    startAutoScroll();
-
-    // Cleanup
-    return () => {
-      stopAutoScroll();
-      container.removeEventListener('mouseenter', handleMouseEnter);
-      container.removeEventListener('mouseleave', handleMouseLeave);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [featuredProducts.length]);
+  // Movimiento perpetuo manejado por animación CSS para mejor rendimiento y fluidez
+  // No necesitamos auto-scroll JavaScript
 
   if (loading) {
     return (
@@ -343,35 +286,24 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
   }
 
   return (
-    <section className="relative py-10 sm:py-14 overflow-hidden">
+    <section className="relative py-0 sm:py-1 overflow-hidden">
       <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-white via-white/70 to-transparent pointer-events-none" />
       <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white via-white/70 to-transparent pointer-events-none" />
       <div className="relative container mx-auto px-4">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <h2 className="gradient-title mt-2 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-500">
+        <div className="flex flex-col items-center gap-0 text-center">
+          <h2 className="gradient-title text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-500">
             Productos destacados
           </h2>
         </div>
 
         {isAdmin && (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.4em] text-indigo-500">
+          <div className="mt-0 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.4em] text-indigo-500">
             Panel admin
           </div>
         )}
 
-        <div className="relative mt-8">
-          <div
-            ref={scrollRef}
-            className="flex gap-6 sm:gap-8 lg:gap-10 overflow-x-auto pb-6 px-4 sm:px-0 snap-x snap-mandatory scrollbar-hide"
-            style={{
-              WebkitOverflowScrolling: 'touch',
-              scrollBehavior: 'smooth',
-              msOverflowStyle: 'none',
-              scrollbarWidth: 'none',
-              scrollSnapType: 'x mandatory',
-              scrollPadding: '0 20px',
-            }}
-          >
+        <div className="relative mt-1 overflow-hidden">
+          <div className="carousel-track">
             {duplicatedProducts.map((product, index) => (
               <ProductCard
                 key={`${product.id}-${index}`}
@@ -381,21 +313,6 @@ const FeaturedProductsCarousel = ({ onProductSelect }) => {
                 totalProducts={duplicatedProducts.length}
               />
             ))}
-          </div>
-
-          {/* Barra de progreso mejorada - Más elegante y fluida */}
-          <div className="mt-8 px-2 sm:px-4">
-            <div className="relative h-2 sm:h-2.5 rounded-full bg-white/20 border border-white/30 backdrop-blur-xl overflow-hidden shadow-[0_15px_35px_rgba(15,23,42,0.1)]">
-              <div 
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_10px_25px_rgba(99,102,241,0.4)] transition-all duration-700 ease-out"
-                style={{
-                  width: `${((currentIndex % featuredProducts.length) + 1) / featuredProducts.length * 100}%`,
-                }}
-              />
-              <div className="absolute inset-0 opacity-30 bg-gradient-to-r from-white/20 via-transparent to-white/20" />
-              {/* Efecto de brillo */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-60 animate-pulse" />
-            </div>
           </div>
         </div>
       </div>

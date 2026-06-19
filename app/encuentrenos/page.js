@@ -64,8 +64,8 @@ export default function Encuentrenos() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
+      {/* Header con mismo diseño que homepage */}
+      <header className="bg-white/30 backdrop-blur-sm shadow relative z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <a href="/" className="flex items-center space-x-2 cursor-pointer">
@@ -90,10 +90,10 @@ export default function Encuentrenos() {
             </a>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <Link 
-                href="/"
+                href="/ofertas"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
-                Inicio
+                Ofertas
               </Link>
               <Link 
                 href="/encuentrenos"
@@ -188,11 +188,11 @@ export default function Encuentrenos() {
               <div className="space-y-4">
                 <div className="border-l-4 border-indigo-500 pl-4">
                   <p className="font-semibold text-gray-900">Lunes a Viernes</p>
-                  <p className="text-gray-700">10:00 AM - 9:00 PM</p>
+                  <p className="text-gray-700">10:00 AM - 20:30 PM</p>
                 </div>
                 <div className="border-l-4 border-indigo-500 pl-4">
                   <p className="font-semibold text-gray-900">Sábados y Domingos</p>
-                  <p className="text-gray-700">10:00 AM - 8:00 PM</p>
+                  <p className="text-gray-700">10:00 AM - 19:30 PM</p>
                 </div>
                 <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
@@ -215,14 +215,14 @@ export default function Encuentrenos() {
                 <div className="border-l-4 border-green-500 pl-4">
                   <p className="font-semibold text-gray-900">🏠 Hualpén</p>
                   <p className="text-gray-700">
-                    <span className="text-green-600 font-semibold">GRATIS</span> en compras sobre $15.000
+                    <span className="text-green-600 font-semibold">GRATIS</span> en compras sobre $20.000
                   </p>
                   <p className="text-sm text-gray-500 mt-1">Lunes a Sábados</p>
                 </div>
                 <div className="border-l-4 border-blue-500 pl-4">
                   <p className="font-semibold text-gray-900">🌆 Talcahuano y Concepción</p>
                   <p className="text-gray-700">
-                    Recargo de <span className="text-blue-600 font-semibold">$2.000</span>
+                    Recargo de <span className="text-blue-600 font-semibold">$2.500</span>
                   </p>
                   <p className="text-sm text-gray-500 mt-1">Lunes a Sábados</p>
                 </div>
@@ -248,7 +248,7 @@ export default function Encuentrenos() {
                         <div className="flex items-center justify-between bg-white/60 rounded-lg p-3">
                           <div>
                             <p className="text-sm font-medium text-gray-700">Reparto Tarde</p>
-                            <p className="text-lg font-bold text-indigo-600">19:00 - 21:00 hrs</p>
+                            <p className="text-lg font-bold text-indigo-600">18:30 - 20:30 hrs</p>
                           </div>
                           <div className="text-2xl">🌆</div>
                         </div>

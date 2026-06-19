@@ -66,8 +66,8 @@ export default function ProductoPage({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
+      {/* Header con mismo diseño que homepage */}
+      <header className="bg-white/30 backdrop-blur-sm shadow relative z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <Link href="/" className="flex items-center space-x-2 cursor-pointer">
@@ -85,10 +85,10 @@ export default function ProductoPage({ params }) {
             </Link>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <Link 
-                href="/"
+                href="/ofertas"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
-                Inicio
+                Ofertas
               </Link>
               <Link 
                 href="/encuentrenos"

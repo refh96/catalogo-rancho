@@ -13,13 +13,7 @@ import BarcodeScanner from '../src/components/BarcodeScannerClient';
 import TextScannerModal from '../src/components/TextScannerModal';
 import BackupManager from '../src/components/BackupManager';
 import ExcelExporter from '../src/components/ExcelExporter';
-import dynamic from 'next/dynamic';
 import { useVercelAnalytics } from '../src/hooks/useVercelAnalytics';
-
-const FeaturedProductsCarousel = dynamic(
-  () => import('@/components/FeaturedProductsCarousel'),
-  { ssr: false }
-);
 
 const createEmptyFeedingGuideTable = () => ({
   columns: ['Peso', 'Ración'],
@@ -282,6 +276,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('todos'); // Valor por defecto 'todos'
   const [showLogin, setShowLogin] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [headerLogoFailed, setHeaderLogoFailed] = useState(false);
   const [formData, setFormData] = useState(() => createEmptyFormData('perros'));
   const [priceDisplayValue, setPriceDisplayValue] = useState('');
@@ -1372,23 +1367,8 @@ export default function Home() {
         </div>
       )}
       
-      {/* Contenedor con imagen de fondo para header y carrusel */}
-      <div className="relative">
-        {/* Imagen de fondo del local */}
-        <div className="absolute inset-0">
-          <img
-            src="https://i.ibb.co/XH7nD58/rancho.jpg"
-            alt="Rancho de Mascotas Hualpén - Nuestro local"
-            className="absolute inset-0 w-full h-full object-cover opacity-80"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/30 via-white/40 to-cyan-50/30" />
-        </div>
-        
-        {/* Header */}
-        <header className="bg-white/30 backdrop-blur-sm shadow relative z-10">
+      {/* Header */}
+      <header className="bg-white/30 backdrop-blur-sm shadow relative z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <a href="/" onClick={handleLogoClick} className="flex items-center space-x-2 cursor-pointer">
@@ -1413,6 +1393,12 @@ export default function Home() {
           </a>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <Link 
+                href="/ofertas"
+                className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                Ofertas
+              </Link>
+              <Link 
                 href="/encuentrenos"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
@@ -1425,68 +1411,56 @@ export default function Home() {
               >
                 <CartIcon />
               </button>
-            
-            {!user ? (
-              <button 
-                onClick={() => setShowLogin(true)}
-                className="px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-xs sm:text-sm"
-              >
-                Admin
-              </button>
-            ) : (
-              <div className="flex items-center space-x-2 sm:space-x-4">
-                <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Hola, {user.username}</span>
-                <button 
-                  onClick={handleLogout}
-                  className="px-2 sm:px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs sm:text-sm"
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            )}
             </div>
           </div>
         </div>
       </header>
 
-      <FeaturedProductsCarousel onProductSelect={navigateToProduct} />
-      
-      </div> {/* Cierre del contenedor con imagen de fondo */}
-
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="bg-indigo-700 rounded-lg shadow-xl overflow-hidden mb-6 sm:mb-8 lg:mb-12">
-          <div className="max-w-7xl mx-auto py-8 px-4 sm:py-12 sm:px-6 lg:px-8 lg:py-16">
-            <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white lg:text-4xl text-center lg:text-left mobile-headline-white">
-                  <span className="block">Todo para tus mascotas</span>
-                  <span className="block text-indigo-200">En un solo lugar</span>
-                </h2>
-                <p className="mt-3 max-w-3xl text-sm sm:text-lg text-indigo-100 text-center lg:text-left">
-                  Encuentra los mejores productos para el cuidado y entretenimiento de tus mascotas.
+        {/* Hero Section con imagen del local */}
+        <div id="hero-section" className="relative rounded-2xl overflow-hidden mb-8 sm:mb-12 shadow-2xl">
+          <div className="relative h-[400px] sm:h-[500px] lg:h-[600px]">
+            <img
+              src="https://i.ibb.co/XH7nD58/rancho.jpg"
+              alt="Rancho de Mascotas Hualpén - Nuestro local"
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 via-indigo-800/70 to-purple-900/80" />
+            <div className="absolute inset-0 flex items-center justify-center px-6 sm:px-8 lg:px-12">
+              <div className="text-center max-w-4xl hero-text-white px-4 sm:px-6 lg:px-8">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-3 sm:mb-4 md:mb-6 leading-tight">
+                  Bienvenidos a
+                  <span className="block hero-text-gradient mt-1 sm:mt-2 md:mt-2">
+                    Rancho Mascotas Hualpén
+                  </span>
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-4 sm:mb-6 md:mb-8 max-w-2xl mx-auto">
+                  Todo para tus mascotas en un solo lugar
                 </p>
-              </div>
-              <div className="mt-8 relative lg:mt-0">
-                <div className="relative mx-auto w-full rounded-lg shadow-lg">
-                  <div className="relative block w-full bg-white rounded-lg overflow-hidden">
-                    <div className="relative w-full h-48 sm:h-64">
-                      <Image
-                        src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80"
-                        alt="Mascotas felices"
-                        fill
-                        className="object-cover"
-                        priority
-                      />
-                    </div>
-                  </div>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    href="/ofertas"
+                    className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-full hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  >
+                    Ver Ofertas
+                  </Link>
+                  <Link
+                    href="#productos"
+                    className="px-8 py-4 bg-white/20 backdrop-blur-sm text-white font-bold rounded-full hover:bg-white/30 transition-all duration-300 border-2 border-white/30"
+                  >
+                    Ver Productos
+                  </Link>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mb-6 sm:mb-8 lg:mb-12">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Nuestros Productos</h2>
+        <div id="productos" className="mb-6 sm:mb-8 lg:mb-12">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center">Nuestros Productos</h2>
           
           {/* Filtros de categoría */}
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mb-8">
@@ -3747,6 +3721,50 @@ export default function Home() {
                 </a>
               ))}
             </div>
+            
+            <div className="relative mt-4">
+              <button 
+                onClick={() => setShowAdminMenu(!showAdminMenu)}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors inline-flex items-center justify-center"
+                aria-label="Menú de administrador"
+              >
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+              
+              {showAdminMenu && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="p-2">
+                    {!user ? (
+                      <button 
+                        onClick={() => {
+                          setShowLogin(true);
+                          setShowAdminMenu(false);
+                        }}
+                        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm text-left"
+                      >
+                        Admin
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <span className="block px-4 py-2 text-sm text-gray-600">Hola, {user.username}</span>
+                        <button 
+                          onClick={() => {
+                            handleLogout();
+                            setShowAdminMenu(false);
+                          }}
+                          className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm text-left"
+                        >
+                          Cerrar sesión
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <p className="text-center text-xs sm:text-sm text-gray-500">
               &copy; {new Date().getFullYear()} Rancho Mascotas Hualpén. Todos los derechos reservados.
             </p>

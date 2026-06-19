@@ -5,7 +5,10 @@ import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 // Funciones de fecha
 const formatDateKey = (date) => {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const formatDeliveryDayForMessage = (dateKey) => {
@@ -15,18 +18,8 @@ const formatDeliveryDayForMessage = (dateKey) => {
 };
 
 const formatDeliveryDayOptionLabel = (date) => {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  if (date.toDateString() === today.toDateString()) {
-    return 'Hoy';
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return 'Mañana';
-  } else {
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    return date.toLocaleDateString('es-CL', options);
-  }
+  const options = { weekday: 'long', day: 'numeric', month: 'long' };
+  return date.toLocaleDateString('es-CL', options);
 };
 
 const getAvailableDeliveryDays = () => {
@@ -55,7 +48,8 @@ const getInitialDeliveryOptions = () => {
   };
 };
 
-const getTimeSlotText = (slot) => {
+const getTimeSlotText = (slot, customTime = null) => {
+  if (customTime) return customTime;
   switch(slot) {
     case 'morning': return '12:30 - 14:30';
     case 'afternoon': return '19:00 - 21:00';
@@ -133,18 +127,20 @@ export default function CartModal({ isOpen, onClose }) {
       comuna: '',
       deliveryDay: initialDelivery.deliveryDay,
       deliveryTimeSlot: initialDelivery.deliveryTimeSlot,
+      pickupTime: '', // Hora personalizada para retiro en tienda
     };
   });
 
   const now = new Date();
-  const todayKey = formatDateKey(now);
-  const isAfterOnePM =
-    now.getHours() > 12 || (now.getHours() === 12 && now.getMinutes() > 30);
-  const isAfterSevenThirtyPM =
-    now.getHours() > 19 || (now.getHours() === 19 && now.getMinutes() > 0);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = formatDateKey(today);
+  const isAfterElevenFiftyNineAM =
+    now.getHours() > 11 || (now.getHours() === 11 && now.getMinutes() > 59);
+  const isAfterSixThirtyPM =
+    now.getHours() > 18 || (now.getHours() === 18 && now.getMinutes() > 30);
   const isTodaySelected = orderDetailsState.deliveryDay === todayKey;
-  const isMorningSlotDisabled = isTodaySelected && isAfterOnePM;
-  const isAfternoonSlotDisabled = isTodaySelected && isAfterSevenThirtyPM;
+  const isMorningSlotDisabled = isTodaySelected && isAfterElevenFiftyNineAM;
+  const isAfternoonSlotDisabled = isTodaySelected && isAfterSixThirtyPM;
 
   const sendWhatsAppMessage = async (order) => {
     const productsText = cart.map(item => 
@@ -172,11 +168,13 @@ export default function CartModal({ isOpen, onClose }) {
     const addressText = order.orderType === 'delivery' 
       ? `%0A*Dirección:* ${order.address || 'No especificada'}${comunaText}` 
       : '';
-    const deliveryDayText = order.orderType === 'delivery' && order.deliveryDay
+    const deliveryDayText = order.deliveryDay
       ? `%0A*Día de entrega:* ${formatDeliveryDayForMessage(order.deliveryDay)}`
       : '';
     const deliveryTimeSlotText = order.orderType === 'delivery' && order.deliveryTimeSlot
       ? `%0A*Horario de entrega:* ${getTimeSlotText(order.deliveryTimeSlot)}`
+      : order.orderType === 'pickup' && order.pickupTime
+      ? `%0A*Horario de retiro:* ${order.pickupTime}`
       : '';
     const paymentMethodText = order.paymentMethod ? `%0A*Método de pago:* ${getPaymentMethodText(order.paymentMethod)}` : '';
     const transferDetailsText = order.paymentMethod === 'transferencia'
@@ -279,6 +277,10 @@ export default function CartModal({ isOpen, onClose }) {
     
     if (orderType === 'delivery' && !orderDetailsState.comuna) {
       errors.comuna = 'Por favor selecciona una comuna para el envío';
+    }
+    
+    if (orderType === 'pickup' && !orderDetailsState.pickupTime) {
+      errors.pickupTime = 'Por favor selecciona un horario de retiro';
     }
     
     if (Object.keys(errors).length > 0) {
@@ -566,59 +568,81 @@ export default function CartModal({ isOpen, onClose }) {
                     </div>
 
                     <div className="mb-4">
-                      <p className="text-sm font-semibold text-gray-700 mb-3">Horario de entrega:</p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isMorningSlotDisabled) return;
-                            setOrderDetailsState({
-                              ...orderDetailsState,
-                              deliveryTimeSlot: 'morning',
-                            });
-                          }}
-                          disabled={isMorningSlotDisabled}
-                          className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
-                            isMorningSlotDisabled
-                              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
-                              : orderDetailsState.deliveryTimeSlot === 'morning'
-                              ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm'
-                              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                          }`}
-                        >
-                          <span className="flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Mañana (12:30 - 14:30)
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isAfternoonSlotDisabled) return;
-                            setOrderDetailsState({
-                              ...orderDetailsState,
-                              deliveryTimeSlot: 'afternoon',
-                            });
-                          }}
-                          disabled={isAfternoonSlotDisabled}
-                          className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
-                            isAfternoonSlotDisabled
-                              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
-                              : orderDetailsState.deliveryTimeSlot === 'afternoon'
-                              ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm'
-                              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                          }`}
-                        >
-                          <span className="flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Tarde (19:00 - 21:00)
-                          </span>
-                        </button>
-                      </div>
+                      <p className="text-sm font-semibold text-gray-700 mb-3">
+                        {orderType === 'delivery' ? 'Horario de entrega:' : 'Horario de retiro:'}
+                      </p>
+                      {orderType === 'delivery' ? (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isMorningSlotDisabled) return;
+                              setOrderDetailsState({
+                                ...orderDetailsState,
+                                deliveryTimeSlot: 'morning',
+                              });
+                            }}
+                            disabled={isMorningSlotDisabled}
+                            className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                              isMorningSlotDisabled
+                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
+                                : orderDetailsState.deliveryTimeSlot === 'morning'
+                                ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Mañana (12:30 - 15:00)
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isAfternoonSlotDisabled) return;
+                              setOrderDetailsState({
+                                ...orderDetailsState,
+                                deliveryTimeSlot: 'afternoon',
+                              });
+                            }}
+                            disabled={isAfternoonSlotDisabled}
+                            className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
+                              isAfternoonSlotDisabled
+                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
+                                : orderDetailsState.deliveryTimeSlot === 'afternoon'
+                                ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Tarde (18:30 - 20:30)
+                            </span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="time"
+                            min="10:00"
+                            max="19:30"
+                            value={orderDetailsState.pickupTime}
+                            onChange={(e) => setOrderDetailsState({...orderDetailsState, pickupTime: e.target.value})}
+                            className={`w-full p-3 border-2 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300 ${
+                              validationErrors.pickupTime ? 'border-red-500' : 'border-gray-200'
+                            }`}
+                            required
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Horario disponible: 10:00 AM - 19:30 PM</p>
+                          {validationErrors.pickupTime && (
+                            <p className="text-red-500 text-xs mt-1">{validationErrors.pickupTime}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
