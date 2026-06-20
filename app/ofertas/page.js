@@ -110,7 +110,7 @@ export default function OfertasPage() {
                 href="/ofertas"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors border-b-2 border-indigo-600"
               >
-                Ofertas
+                Destacados
               </Link>
               <Link 
                 href="/encuentrenos"
@@ -129,10 +129,10 @@ export default function OfertasPage() {
         <div className="relative container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-500 mb-2">
-              Ofertas Especiales
+              Productos Destacados
             </h1>
             <p className="text-lg text-gray-600 mb-4">
-              Descubre los mejores productos destacados con precios especiales para tus mascotas
+              Descubre los mejores productos con los mejores precios para tus mascotas
             </p>
           </div>
         </div>

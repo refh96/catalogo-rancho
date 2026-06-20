@@ -93,7 +93,7 @@ export default function Encuentrenos() {
                 href="/ofertas"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
-                Ofertas
+                Destacados
               </Link>
               <Link 
                 href="/encuentrenos"

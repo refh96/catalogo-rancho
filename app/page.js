@@ -1396,7 +1396,7 @@ export default function Home() {
                 href="/ofertas"
                 className="px-2 py-1 text-xs sm:px-3 sm:py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
-                Ofertas
+                Destacados
               </Link>
               <Link 
                 href="/encuentrenos"
@@ -1445,7 +1445,7 @@ export default function Home() {
                     href="/ofertas"
                     className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-full hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
-                    Ver Ofertas
+                    Ver Destacados
                   </Link>
                   <Link
                     href="#productos"
