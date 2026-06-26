@@ -283,6 +283,19 @@ export default function CartModal({ isOpen, onClose }) {
       errors.pickupTime = 'Por favor selecciona un horario de retiro';
     }
     
+    // Validación para envío a domicilio: verificar que no se envíe pedido para hoy si ambos horarios están bloqueados
+    if (orderType === 'delivery' && isTodaySelected) {
+      if (isMorningSlotDisabled && isAfternoonSlotDisabled) {
+        errors.deliveryTimeSlot = 'No hay horarios disponibles para hoy. Por favor selecciona otro día.';
+      } else if (!orderDetailsState.deliveryTimeSlot) {
+        errors.deliveryTimeSlot = 'Por favor selecciona un horario de entrega';
+      } else if (orderDetailsState.deliveryTimeSlot === 'morning' && isMorningSlotDisabled) {
+        errors.deliveryTimeSlot = 'El horario de la mañana ya no está disponible para hoy. Por favor selecciona el horario de la tarde u otro día.';
+      } else if (orderDetailsState.deliveryTimeSlot === 'afternoon' && isAfternoonSlotDisabled) {
+        errors.deliveryTimeSlot = 'El horario de la tarde ya no está disponible para hoy. Por favor selecciona otro día.';
+      }
+    }
+    
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
@@ -553,7 +566,10 @@ export default function CartModal({ isOpen, onClose }) {
                       <select
                         required
                         value={orderDetailsState.deliveryDay}
-                        onChange={(e) => setOrderDetailsState({...orderDetailsState, deliveryDay: e.target.value})}
+                        onChange={(e) => {
+                          setOrderDetailsState({...orderDetailsState, deliveryDay: e.target.value});
+                          setValidationErrors({...validationErrors, deliveryTimeSlot: null});
+                        }}
                         className="w-full p-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-300"
                       >
                         {getAvailableDeliveryDays().map((date) => {
@@ -581,6 +597,7 @@ export default function CartModal({ isOpen, onClose }) {
                                 ...orderDetailsState,
                                 deliveryTimeSlot: 'morning',
                               });
+                              setValidationErrors({...validationErrors, deliveryTimeSlot: null});
                             }}
                             disabled={isMorningSlotDisabled}
                             className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
@@ -606,6 +623,7 @@ export default function CartModal({ isOpen, onClose }) {
                                 ...orderDetailsState,
                                 deliveryTimeSlot: 'afternoon',
                               });
+                              setValidationErrors({...validationErrors, deliveryTimeSlot: null});
                             }}
                             disabled={isAfternoonSlotDisabled}
                             className={`px-4 py-2 text-sm border-2 rounded-lg font-medium transition-all duration-200 ${
@@ -642,6 +660,14 @@ export default function CartModal({ isOpen, onClose }) {
                             <p className="text-red-500 text-xs mt-1">{validationErrors.pickupTime}</p>
                           )}
                         </div>
+                      )}
+                      {validationErrors.deliveryTimeSlot && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center">
+                          <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          {validationErrors.deliveryTimeSlot}
+                        </p>
                       )}
                     </div>
 
